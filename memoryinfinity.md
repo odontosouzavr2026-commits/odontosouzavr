@@ -719,6 +719,7 @@ export const brandColors = {
       - Compilação do projeto verificada com 100% de sucesso via `npm run build`.
       - **Preparação e Blindagem para Deploy no Vercel (`odontosouzavr2026-6041`):**
         - Criado [`vercel.json`](file:///c:/OdontoSouza/vercel.json) configurado com rotas SPA (`rewrites: [ { source: "/(.*)", destination: "/index.html" } ]`) para impedir erros 404 em recarregamento de página ou rotas profundas.
+        - Criado [`.npmrc`](file:///c:/OdontoSouza/.npmrc) com `legacy-peer-deps=true` e removido conflito de versão do `esbuild` no [`package.json`](file:///c:/OdontoSouza/package.json), garantindo que o `npm install` no ambiente da Vercel conclua sem falha de peer dependencies.
         - Atualizado `.gitignore` para ignorar a pasta interna `.vercel`.
         - Resolução completa de todas as inconsistências de tipagem TypeScript no código (`tsc --noEmit` / `npm run lint` passando com 0 erros).
         - Modernizado [`vite.config.ts`](file:///c:/OdontoSouza/vite.config.ts) com `fileURLToPath` para compatibilidade total com o Vite 8.
