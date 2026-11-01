@@ -261,7 +261,9 @@ export const pacientesService = {
       }
 
       // 2. Registra o usuário na tabela 'usuarios' com perfil_nome e funcao obrigatoriamente como 'paciente'
+      const userId = authData?.user?.id;
       const payloadUsuario = {
+        id: userId,
         nome: dados.nome,
         email: dados.email.trim().toLowerCase(),
         telefone: dados.telefone || null,
@@ -271,12 +273,21 @@ export const pacientesService = {
         atualizado_em: new Date().toISOString(),
       };
 
-      const { error: userError } = await supabase
-        .from('usuarios')
-        .upsert(payloadUsuario, { onConflict: 'email' });
+      // Tenta via RPC salvar_usuario_sistema (SECURITY DEFINER contorna RLS)
+      const { error: rpcError } = await supabase.rpc('salvar_usuario_sistema', {
+        p_dados: payloadUsuario,
+      });
 
-      if (userError) {
-        console.warn('[pacientesService.criarAcessoPortalPaciente] Erro ao gravar em public.usuarios:', userError.message);
+      if (rpcError) {
+        console.warn('[pacientesService.criarAcessoPortalPaciente] RPC salvar_usuario_sistema aviso:', rpcError.message);
+        // Fallback direto na tabela usuarios
+        const { error: userError } = await supabase
+          .from('usuarios')
+          .upsert(payloadUsuario, { onConflict: 'email' });
+
+        if (userError) {
+          console.warn('[pacientesService.criarAcessoPortalPaciente] Erro ao gravar em public.usuarios:', userError.message);
+        }
       }
 
       // 3. Registra log na trilha de auditoria para conformidade LGPD

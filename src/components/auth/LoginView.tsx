@@ -237,10 +237,15 @@ export const LoginView: React.FC<LoginViewProps> = ({
       }
 
       // FALHA DE AUTENTICAÇÃO: Incrementa contador e verifica se atingiu 3 tentativas consecutivas
+      if (authError) {
+        console.warn('[LoginView] Supabase Auth erro:', authError.message);
+      }
       setIsLoading(false);
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
       sessionStorage.setItem('odonto_login_failed_attempts', String(nextAttempts));
+
+      const isEmailNotConfirmed = authError?.message?.toLowerCase().includes('email not confirmed');
 
       if (nextAttempts >= MAX_FAILED_ATTEMPTS) {
         const lockExpiry = Date.now() + LOCKOUT_DURATION_SECONDS * 1000;
@@ -253,7 +258,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
         toast.error('Acesso Bloqueado! 🛡️', lockMsg);
       } else {
         const remaining = MAX_FAILED_ATTEMPTS - nextAttempts;
-        const warnMsg = `E-mail ou senha incorretos. Tentativa ${nextAttempts} de ${MAX_FAILED_ATTEMPTS}. Resta(m) ${remaining} tentativa(s) antes do bloqueio da conta.`;
+        const warnMsg = isEmailNotConfirmed
+          ? 'E-mail cadastrado aguardando confirmação de ativação. Tente fazer login novamente.'
+          : `E-mail ou senha incorretos. Tentativa ${nextAttempts} de ${MAX_FAILED_ATTEMPTS}. Resta(m) ${remaining} tentativa(s) antes do bloqueio da conta.`;
         setErrorMessage(warnMsg);
         toast.warning('Falha na autenticação', warnMsg);
       }
