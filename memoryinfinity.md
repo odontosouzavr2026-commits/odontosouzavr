@@ -717,3 +717,9 @@ export const brandColors = {
           - Arquivos de backup `.backups/`, `.tar.gz` e `.zip` fiquem ignorados.
         - Criado commit inicial limpo contendo exclusivamente código-fonte, configurações seguras e documentação.
       - Compilação do projeto verificada com 100% de sucesso via `npm run build`.
+      - **Preparação e Blindagem para Deploy no Vercel (`odontosouzavr2026-6041`):**
+        - Criado [`vercel.json`](file:///c:/OdontoSouza/vercel.json) configurado com rotas SPA (`rewrites: [ { source: "/(.*)", destination: "/index.html" } ]`) para impedir erros 404 em recarregamento de página ou rotas profundas.
+        - Atualizado `.gitignore` para ignorar a pasta interna `.vercel`.
+        - Resolução completa de todas as inconsistências de tipagem TypeScript no código (`tsc --noEmit` / `npm run lint` passando com 0 erros).
+        - Modernizado [`vite.config.ts`](file:///c:/OdontoSouza/vite.config.ts) com `fileURLToPath` para compatibilidade total com o Vite 8.
+        - `npm run build` executando em apenas 1.06s gerando o bundle de produção otimizado na pasta `dist/`.
