@@ -721,6 +721,9 @@ export const brandColors = {
         - Ativado gatilho de auto-confirmação `on_auth_user_auto_confirm` em `auth.users` para aprovar `email_confirmed_at` automaticamente na criação de novos usuários sem dependência de envio de e-mails.
         - Atualizado [`pacientesService.ts`](file:///c:/OdontoSouza/src/services/pacientesService.ts) para gravar novos acessos na tabela `public.usuarios` via RPC `salvar_usuario_sistema` com `SECURITY DEFINER`, contornando bloqueios de RLS e repassando o UUID oficial gerado pelo Supabase Auth.
         - Aprimorado [`LoginView.tsx`](file:///c:/OdontoSouza/src/components/auth/LoginView.tsx) para apresentar mensagens precisas do Supabase Auth e assegurar login imediato para pacientes cadastrados.
+      - **Armazenamento de Arquivos S3 (Contabo Object Storage):**
+        - Validação de conexão e autenticação executada com sucesso contra o endpoint `https://usc1.contabostorage.com` (região United States Central).
+        - Biblioteca `@aws-sdk/client-s3` integrada e pronta para upload e leitura de exames, fotos radiológicas e PDFs sem expor segredos.
         - Criado [`vercel.json`](file:///c:/OdontoSouza/vercel.json) configurado com rotas SPA (`rewrites: [ { source: "/(.*)", destination: "/index.html" } ]`) para impedir erros 404 em recarregamento de página ou rotas profundas.
         - Criado [`.npmrc`](file:///c:/OdontoSouza/.npmrc) com `legacy-peer-deps=true` e removido conflito de versão do `esbuild` no [`package.json`](file:///c:/OdontoSouza/package.json), garantindo que o `npm install` no ambiente da Vercel conclua sem falha de peer dependencies.
         - Atualizado `.gitignore` para ignorar a pasta interna `.vercel`.
