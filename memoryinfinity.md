@@ -708,4 +708,12 @@ export const brandColors = {
           - Removida a senha de qualquer mensagem de toast, notificação ou texto de apoio.
           - Campo de e-mail inicializado vazio sem pré-preenchimento ou placeholders identificáveis.
           - Reafirmada e blindada a conformidade com a `RULE[security.md]`: **Tolerância Zero para Exposição de Senhas ou Segredos na UI, Logs ou Respostas**.
+      - **Configuração do Repositório Git e Preparação para Deploy:**
+        - Repositório Git inicializado na branch principal `main`.
+        - Adicionado remote `origin` apontando para `https://github.com/odontosouzavr2026-commits/odontosouzavr.git`.
+        - Regra de exclusão estrita no `.gitignore` garantindo que:
+          - A pasta `1 - imagens do sistema/` nunca seja enviada.
+          - Todos os arquivos `.env*` (incluindo `.env.local` com credenciais) fiquem 100% blindados e ignorados.
+          - Arquivos de backup `.backups/`, `.tar.gz` e `.zip` fiquem ignorados.
+        - Criado commit inicial limpo contendo exclusivamente código-fonte, configurações seguras e documentação.
       - Compilação do projeto verificada com 100% de sucesso via `npm run build`.
