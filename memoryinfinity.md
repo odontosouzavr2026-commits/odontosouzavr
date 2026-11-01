@@ -734,3 +734,4 @@ export const brandColors = {
         - Resolução completa de todas as inconsistências de tipagem TypeScript no código (`tsc --noEmit` / `npm run lint` passando com 0 erros).
         - Modernizado [`vite.config.ts`](file:///c:/OdontoSouza/vite.config.ts) com `fileURLToPath` para compatibilidade total com o Vite 8.
         - `npm run build` executando em apenas 1.06s gerando o bundle de produção otimizado na pasta `dist/`.
+        - Variáveis de ambiente da Contabo configuradas na Vercel e deploy de produção sincronizado com GitHub.
