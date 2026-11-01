@@ -1,0 +1,633 @@
+<!DOCTYPE html><html lang="pt-BR" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><title>Odonto Souza - Gestão Odontológica</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-container-lowest":"#ffffff","on-tertiary-fixed-variant":"#0b5040","on-surface-variant":"#3f484c","outline-variant":"#bfc8cc","surface-container-low":"#eff4ff","secondary-fixed":"#89f3f6","inverse-primary":"#8bd1e8","primary-fixed":"#b2ebff","primary-container":"#005f73","on-primary-fixed":"#001f27","outline":"#6f797c","surface-tint":"#13677b","surface-bright":"#f8f9ff","on-primary":"#ffffff","surface-container-high":"#dce9ff","on-secondary-fixed-variant":"#004f51","surface-variant":"#d3e4fe","secondary-container":"#86f0f3","on-secondary":"#ffffff","on-error-container":"#93000a","on-tertiary-container":"#9bd9c4","secondary-fixed-dim":"#6bd7da","on-tertiary":"#ffffff","inverse-on-surface":"#eaf1ff","tertiary-fixed":"#b0efda","on-surface":"#0b1c30","inverse-surface":"#213145","error":"#ba1a1a","primary":"#004655","primary-fixed-dim":"#8bd1e8","tertiary-fixed-dim":"#95d3be","on-primary-container":"#91d7ee","surface-dim":"#cbdbf5","on-secondary-container":"#006e70","background":"#f8f9ff","tertiary-container":"#226150","on-error":"#ffffff","on-tertiary-fixed":"#002018","secondary":"#00696c","on-secondary-fixed":"#002021","surface-container":"#e5eeff","error-container":"#ffdad6","on-background":"#0b1c30","surface":"#f8f9ff","surface-container-highest":"#d3e4fe","tertiary":"#00493a","on-primary-fixed-variant":"#004e5f"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-xs":"0.25rem","margin-mobile":"1rem","gutter":"1.5rem","space-lg":"1.5rem","space-md":"1rem","space-xl":"2rem","space-sm":"0.5rem","margin":"2rem","gutter-mobile":"1rem"},fontFamily:{"body-sm":["Inter"],"label-sm":["Inter"],"body-md":["Inter"],"headline-sm":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-xl-mobile":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"label-md":["Inter"],"body-lg":["Inter"],"label-lg":["Inter"],"headline-xl":["Plus Jakarta Sans"]},fontSize:{"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"label-sm":["11px",{"lineHeight":"14px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"headline-xl-mobile":["26px",{"lineHeight":"34px","fontWeight":"700"}],"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","fontWeight":"500"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"40px","fontWeight":"700"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-primary-container text-on-primary z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)] transition-all" id="app-sidebar"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center justify-between border-b border-white/10 overflow-hidden"><div class="flex items-center gap-space-sm min-w-0 overflow-hidden"><div class="w-9 h-9 rounded-lg bg-surface-container-lowest/15 flex items-center justify-center text-primary-fixed shrink-0"><span class="material-symbols-outlined text-[22px]">dentistry</span></div><div class="flex flex-col sidebar-text transition-opacity"><span class="font-headline-sm text-headline-sm text-on-primary font-bold tracking-tight truncate">Odonto Souza</span><span class="font-label-sm text-label-sm text-on-primary-container tracking-wider uppercase truncate">Clínica Odonto</span></div></div><button id="sidebar-toggle-btn" onclick="toggleSidebar()" class="p-1.5 rounded-lg text-on-primary/80 hover:text-on-primary hover:bg-white/10 transition-colors shrink-0 ml-1 flex items-center justify-center" title="Recolher menu" aria-label="Recolher ou expandir menu"><span id="sidebar-toggle-icon" class="material-symbols-outlined text-[20px]">first_page</span></button></div><nav class="flex flex-col gap-space-xs px-space-sm py-space-lg" data-active-classes="bg-secondary text-on-secondary rounded-lg font-label-lg"><a aria-current="page" class="flex items-center gap-space-md px-3 py-2.5 transition-all bg-secondary text-on-secondary rounded-lg font-label-lg sidebar-nav-link" data-path="dashboard" href="#" title="Dashboard"><span class="material-symbols-outlined text-[20px] shrink-0">grid_view</span><span class="font-label-lg text-label-lg sidebar-text truncate">Dashboard</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="atendimento" href="#" title="Atendimento"><span class="material-symbols-outlined text-[20px] shrink-0">medical_services</span><span class="font-label-lg text-label-lg sidebar-text truncate">Atendimento</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="agenda" href="#" title="Agenda"><span class="material-symbols-outlined text-[20px] shrink-0">calendar_month</span><span class="font-label-lg text-label-lg sidebar-text truncate">Agenda</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="procedimentos" href="#" title="Procedimentos"><span class="material-symbols-outlined text-[20px] shrink-0">dentistry</span><span class="font-label-lg text-label-lg sidebar-text truncate">Procedimentos</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="pacientes" href="#" title="Pacientes"><span class="material-symbols-outlined text-[20px] shrink-0">group</span><span class="font-label-lg text-label-lg sidebar-text truncate">Pacientes</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="financeiro" href="#" title="Financeiro"><span class="material-symbols-outlined text-[20px] shrink-0">payments</span><span class="font-label-lg text-label-lg sidebar-text truncate">Financeiro</span></a><a class="flex items-center gap-space-md px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="relatorios" href="#" title="Relatórios"><svg class="w-5 h-5 shrink-0" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="16" y1="13" y2="17"></line><line x1="12" x2="12" y1="11" y2="17"></line><line x1="8" x2="8" y1="15" y2="17"></line></svg><span class="font-label-lg text-label-lg sidebar-text truncate">Relatórios</span></a><div class="flex flex-col gap-0.5"><a class="flex items-center justify-between px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-white/10 hover:text-on-primary transition-all sidebar-nav-link" data-path="configuracoes" href="#" title="Configurações"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px] shrink-0">settings</span><span class="font-label-lg text-label-lg sidebar-text truncate">Configurações</span></div><span class="material-symbols-outlined text-[18px] text-white/70 sidebar-text shrink-0">expand_more</span></a><div class="flex flex-col pl-9 pr-2 py-1 gap-1 sidebar-submenu"><a class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-on-primary/80 hover:text-on-primary hover:bg-white/10 transition-all font-label-md text-label-md" data-path="template-mensagens" href="#" title="Template de Mensagens"><span class="material-symbols-outlined text-[16px] shrink-0">chat_bubble</span><span class="sidebar-text truncate">Template Mensagens</span></a></div></div></nav></div><div class="p-space-sm border-t border-white/10"><a class="flex items-center gap-space-md w-full px-3 py-2.5 rounded-lg text-on-primary/80 hover:bg-error/20 hover:text-on-primary transition-all sidebar-nav-link" data-path="login" href="#" title="Sair da Conta"><span class="material-symbols-outlined text-[20px] shrink-0">logout</span><span class="font-label-lg text-label-lg sidebar-text truncate">Sair</span></a></div></aside><div class="pl-64 transition-all" id="main-layout-wrapper"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest border-b border-surface-container-high/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl transition-all" id="app-header"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Olá, Dr. Souza</span><span class="text-xl">👋</span></div><div class="flex items-center gap-space-lg"><div class="hidden sm:flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md bg-surface-container-low px-space-md py-1.5 rounded-full border border-outline-variant/30"><span class="material-symbols-outlined text-[18px] text-primary">schedule</span><span class="">28/10/2026 14:30</span></div><button aria-label="Notificações" class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="h-8 w-px bg-outline-variant/40"></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-label-lg text-label-lg text-on-surface leading-tight">Dr. Souza</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Cirurgião-Dentista</span></div></div></div></header><main class="relative w-full pt-16 bg-background px-space-margin py-space-margin"><div class="flex flex-col w-full">
+<!-- Top Greeting & Clinic Highlights Banner -->
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-surface-container-lowest p-5 rounded-xl shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[28px]">stethoscope</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="font-headline-md text-headline-md text-on-surface">Visão Geral Clínica</h1>
+
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sincronização em tempo real das agendas dos consultórios 1, 2 e centro cirúrgico</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden md:flex flex-col text-right">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Disponibilidade Hoje</span>
+<span class="font-label-lg text-label-lg text-primary">94% de ocupação</span>
+</div>
+
+</div>
+</div>
+<!-- 1. Grid de Métricas (6 Cartões) -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+<!-- Cartão 1: Consultas Hoje -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed/50 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">person</span>
+</div>
+<span class="inline-flex items-center gap-0.5 font-label-sm text-label-sm text-secondary bg-surface-container-low px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[13px]">trending_up</span>
+          +2
+        </span>
+</div>
+<div>
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold leading-none tracking-tight block mb-1">12</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Consultas Hoje</span>
+<span class="font-body-sm text-body-sm text-outline block mt-0.5">+2 vs ontem</span>
+</div>
+</div>
+<!-- Cartão 2: Aguardando Atendimento -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">schedule</span>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+</div>
+<div>
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold leading-none tracking-tight block mb-1">3</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Aguardando Atend.</span>
+<span class="font-body-sm text-body-sm text-amber-700 font-medium block mt-0.5">Na recepção</span>
+</div>
+</div>
+<!-- Cartão 3: Faturamento do Dia -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed text-tertiary flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+<span class="inline-flex items-center font-label-sm text-label-sm text-tertiary font-bold bg-tertiary-fixed/60 px-1.5 py-0.5 rounded">
+          +15%
+        </span>
+</div>
+<div>
+<span class="font-headline-md text-headline-md text-on-surface font-bold leading-none tracking-tight block mb-1 text-primary">R$ 4.850</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Faturamento Dia</span>
+<span class="font-body-sm text-body-sm text-tertiary block mt-0.5">+15% meta diária</span>
+</div>
+</div>
+<!-- Cartão 4: Orçamentos Aprovados -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/40 text-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">assignment_turned_in</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Meta: 80%</span>
+</div>
+<div>
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold leading-none tracking-tight block mb-1">85%</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Orçamentos Apr.</span>
+<span class="font-body-sm text-body-sm text-outline block mt-0.5">17 de 20 propostas</span>
+</div>
+</div>
+<!-- Cartão 5: Novos Pacientes -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed-dim/40 text-primary-container flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">person_add</span>
+</div>
+<span class="inline-flex items-center font-label-sm text-label-sm text-primary font-bold">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>8
+        </span>
+</div>
+<div>
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold leading-none tracking-tight block mb-1">48</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Novos Pacientes</span>
+<span class="font-body-sm text-body-sm text-primary-container block mt-0.5">+8 este mês</span>
+</div>
+</div>
+<!-- Cartão 6: Taxa de Faltas -->
+<div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group bg-gradient-to-br from-white via-white to-error-container/20">
+<div class="flex items-center justify-between mb-3">
+<div class="w-10 h-10 rounded-lg bg-error-container text-error flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[22px]">person_off</span>
+</div>
+<span class="font-label-sm text-label-sm text-error bg-error-container/50 px-2 py-0.5 rounded-full font-semibold">Baixa</span>
+</div>
+<div>
+<span class="font-headline-xl text-headline-xl text-error font-bold leading-none tracking-tight block mb-1">4%</span>
+<span class="font-label-md text-label-md text-on-surface-variant block truncate">Taxa de Faltas</span>
+<span class="font-body-sm text-body-sm text-error font-medium block mt-0.5">Apenas 1 ausência</span>
+</div>
+</div>
+</div>
+<!-- 2. Secção Central (Tabela + Ações Rápidas) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+<!-- Coluna Esquerda: Próximos Pacientes (2 Colunas) -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-sm p-5 flex flex-col justify-between">
+<div>
+<!-- Table Header Control -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Próximos Pacientes do Dia</h2>
+<span class="px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed font-semibold">
+                  5 agendados
+                </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Fluxo da recepção e consultórios odontológicos</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors font-label-md text-label-md" type="button">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+<span class="">Filtro</span>
+</button>
+<a class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/15 transition-colors font-label-md text-label-md font-semibold" href="#">
+<span class="">Ver todos</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</a>
+</div>
+</div>
+<!-- Table View -->
+<div class="overflow-x-auto -mx-5 px-5">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<th class="py-3 px-4 rounded-l-lg font-semibold">Horário</th>
+<th class="py-3 px-4 font-semibold">Paciente</th>
+<th class="py-3 px-4 font-semibold">Procedimento</th>
+<th class="py-3 px-4 rounded-r-lg font-semibold text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high/40 text-on-surface font-body-md text-body-md">
+<!-- Paciente 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4 font-semibold text-primary">
+<div class="inline-flex items-center gap-1.5 bg-surface-container px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="">14:45</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-sm text-label-sm font-bold">
+                      MS
+                    </div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block leading-snug">Mariana Silva</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Prontuário #4092</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">
+                  Limpeza &amp; Profilaxia
+                </td>
+<td class="py-3.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Aguardando
+                  </span>
+</td>
+</tr>
+<!-- Paciente 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4 font-semibold text-primary">
+<div class="inline-flex items-center gap-1.5 bg-surface-container px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="">15:30</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-label-sm text-label-sm font-bold">
+                      CS
+                    </div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block leading-snug">Carlos Eduardo Santos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Prontuário #3821</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">
+                  Restauração em Resina (Dente 16)
+                </td>
+<td class="py-3.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-tertiary font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                    Confirmado
+                  </span>
+</td>
+</tr>
+<!-- Paciente 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4 font-semibold text-primary">
+<div class="inline-flex items-center gap-1.5 bg-surface-container px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="">16:15</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface flex items-center justify-center font-label-sm text-label-sm font-bold">
+                      BL
+                    </div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block leading-snug">Beatriz Lima</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Prontuário #4105</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">
+                  Manutenção Ortodôntica
+                </td>
+<td class="py-3.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-tertiary font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                    Confirmado
+                  </span>
+</td>
+</tr>
+<!-- Paciente 4 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4 font-semibold text-primary">
+<div class="inline-flex items-center gap-1.5 bg-surface-container px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="">17:00</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-label-sm text-label-sm font-bold">
+                      LM
+                    </div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block leading-snug">Lucas Mendes</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Prontuário #3940</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">
+                  Avaliação de Implante
+                </td>
+<td class="py-3.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Aguardando
+                  </span>
+</td>
+</tr>
+<!-- Paciente 5 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4 font-semibold text-primary">
+<div class="inline-flex items-center gap-1.5 bg-surface-container px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+<span class="">17:45</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center font-label-sm text-label-sm font-bold">
+                      FO
+                    </div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block leading-snug">Fernanda Oliveira</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Prontuário #4112</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">
+                  Clareamento a Laser
+                </td>
+<td class="py-3.5 px-4 text-right">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-tertiary font-label-sm text-label-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                    Confirmado
+                  </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Quick summary footer inside patient card -->
+<div class="mt-4 pt-3 flex items-center justify-between font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low/60 px-4 py-2 rounded-lg">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">chair</span>
+          Consultório 1 ocupado com Dra. Amanda
+        </span>
+<span class="font-label-sm text-label-sm text-secondary font-medium">Próximo slot vago: 18:30</span>
+</div>
+</div>
+<!-- Coluna Direita: Ações Rápidas (1 Coluna) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[22px]">bolt</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Ações Rápidas</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">Operações frequentes do consultório</p>
+<!-- Botões de Ação -->
+<div class="flex flex-col gap-3">
+<!-- Botão 1: Novo Agendamento -->
+<button class="group flex items-center justify-between w-full bg-primary-container hover:bg-secondary text-on-primary p-3.5 rounded-lg shadow-sm hover:shadow transition-all text-left" type="button">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">edit_calendar</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg block leading-tight font-semibold">Novo Agendamento</span>
+<span class="font-body-sm text-body-sm text-on-primary-container">Marcar consulta no calendário</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-white/70 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</button>
+<!-- Botão 2: Cadastrar Paciente -->
+<button class="group flex items-center justify-between w-full bg-surface-container-lowest hover:bg-surface-container-low text-primary p-3.5 rounded-lg shadow-sm hover:shadow transition-all text-left" type="button">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg block leading-tight font-semibold text-on-surface">Cadastrar Paciente</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Ficha clínica &amp; anamnese</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-primary/70 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</button>
+<!-- Botão 3: Novo Orçamento -->
+<button class="group flex items-center justify-between w-full bg-surface-container-lowest hover:bg-surface-container-low text-primary p-3.5 rounded-lg shadow-sm hover:shadow transition-all text-left" type="button">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-tertiary-fixed/60 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">request_quote</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg block leading-tight font-semibold text-on-surface">Novo Orçamento</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Proposta de tratamento odontológico</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-primary/70 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Mini Card Informativo / Alerta Clínico -->
+<div class="mt-5 p-3.5 rounded-xl bg-surface-container-low flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-white flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">sanitizer</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-primary">Biossegurança</span>
+<span class="font-label-sm text-label-sm text-outline">16:00</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mt-0.5 leading-snug">
+            Esterilização Autoclave lote #4 programada às 16:00. Kits cirúrgicos disponíveis.
+          </p>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Secção Inferior: Gráficos Detalhados -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Gráfico 1: Volume de Agendamentos (BarChart) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 flex flex-col justify-between">
+<div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">bar_chart</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Volume de Agendamentos</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Distribuição por período operacional</p>
+</div>
+<!-- Filtros Pill -->
+<div class="inline-flex p-1 bg-surface-container rounded-lg gap-1 self-start sm:self-auto" id="barFilterGroup">
+<button class="px-3 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" onclick="setActiveFilter(this)" type="button">
+              Diário
+            </button>
+<button class="px-3 py-1 rounded font-label-sm text-label-sm bg-primary text-on-primary shadow-sm font-semibold transition-colors" onclick="setActiveFilter(this)" type="button">
+              Semanal
+            </button>
+<button class="px-3 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" onclick="setActiveFilter(this)" type="button">
+              Mensal
+            </button>
+</div>
+</div>
+<!-- Metric subtitle indicator -->
+<div class="flex items-center gap-4 mb-4">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-secondary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Consultas Realizadas</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-sm bg-secondary-fixed"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Primeira Consulta</span>
+</div>
+<span class="ml-auto font-label-md text-label-md text-secondary font-semibold">Média: 14.5 / dia</span>
+</div>
+<!-- SVG Bar Chart -->
+<div class="relative w-full h-64 pt-2">
+<svg class="w-full h-full overflow-visible" fill="none" viewBox="0 0 540 220" xmlns="http://www.w3.org/2000/svg">
+<!-- Grid Lines (pontilhada suave) -->
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="40" x2="520" y1="20" y2="20"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="40" x2="520" y1="65" y2="65"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="40" x2="520" y1="110" y2="110"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="40" x2="520" y1="155" y2="155"></line>
+<line stroke="#CBD5E1" stroke-width="1.5" x1="40" x2="520" y1="190" y2="190"></line>
+<!-- Y Axis Labels -->
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="30" y="24">25</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="30" y="69">20</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="30" y="114">15</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="30" y="159">10</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="30" y="193">0</text>
+<!-- Seg: 14 total (10 realizadas + 4 novos) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="100" opacity="0.8" rx="4" width="30" x="75" y="90"></rect>
+<rect fill="#00696C" height="75" rx="4" width="30" x="75" y="115"></rect>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="90" y="208">Seg</text>
+</g>
+<!-- Ter: 18 total (13 realizadas + 5 novos) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="135" opacity="0.8" rx="4" width="30" x="155" y="55"></rect>
+<rect fill="#00696C" height="100" rx="4" width="30" x="155" y="90"></rect>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="170" y="208">Ter</text>
+</g>
+<!-- Qua: 12 total (9 realizadas + 3 novos) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="85" opacity="0.8" rx="4" width="30" x="235" y="105"></rect>
+<rect fill="#00696C" height="65" rx="4" width="30" x="235" y="125"></rect>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="250" y="208">Qua</text>
+</g>
+<!-- Qui: 22 total (16 realizadas + 6 novos - dia de pico) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="160" opacity="0.8" rx="4" width="30" x="315" y="30"></rect>
+<rect fill="#00696C" height="120" rx="4" width="30" x="315" y="70"></rect>
+<!-- Floating Tooltip for peak day -->
+<rect fill="#004655" height="22" rx="4" width="60" x="300" y="2"></rect>
+<polygon fill="#004655" points="325,24 335,24 330,28"></polygon>
+<text fill="#ffffff" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="330" y="16">22 pac.</text>
+<text fill="#004655" font-family="Inter" font-size="12" font-weight="600" text-anchor="middle" x="330" y="208">Qui</text>
+</g>
+<!-- Sex: 16 total (12 realizadas + 4 novos) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="120" opacity="0.8" rx="4" width="30" x="395" y="70"></rect>
+<rect fill="#00696C" height="92" rx="4" width="30" x="395" y="98"></rect>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="410" y="208">Sex</text>
+</g>
+<!-- Sáb: 8 total (6 realizadas + 2 novos) -->
+<g class="cursor-pointer group">
+<rect fill="#89F3F6" height="55" opacity="0.8" rx="4" width="30" x="475" y="135"></rect>
+<rect fill="#00696C" height="40" rx="4" width="30" x="475" y="150"></rect>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="490" y="208">Sáb</text>
+</g>
+</svg>
+</div>
+</div>
+<div class="mt-2 pt-3 flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span class="">Capacidade total: 120 atendimentos/sem</span>
+<span class="text-secondary font-medium">Taxa de preenchimento: 75%</span>
+</div>
+</div>
+<!-- Gráfico 2: Faturamento & Crescimento (AreaChart) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-5 flex flex-col justify-between">
+<div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">show_chart</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Crescimento Financeiro</h2>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Receita líquida acumulada mensal</p>
+</div>
+<div class="flex items-center gap-2 bg-tertiary-fixed/40 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-[18px] text-tertiary">trending_up</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">+18.4% vs mês ant.</span>
+</div>
+</div>
+<div class="flex items-baseline gap-3 mb-4">
+<span class="font-headline-xl text-headline-xl text-on-surface font-bold">R$ 42.600,00</span>
+<span class="font-body-sm text-body-sm text-outline">Meta mensal: R$ 50.000 (85.2%)</span>
+</div>
+<!-- SVG Area Chart -->
+<div class="relative w-full h-64 pt-2">
+<svg class="w-full h-full overflow-visible" fill="none" viewBox="0 0 540 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#95d3be" stop-opacity="0.55"></stop>
+<stop offset="60%" stop-color="#95d3be" stop-opacity="0.15"></stop>
+<stop offset="100%" stop-color="#95d3be" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+<!-- Horizontal Grid lines -->
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="45" x2="520" y1="20" y2="20"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="45" x2="520" y1="65" y2="65"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="45" x2="520" y1="110" y2="110"></line>
+<line stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1" x1="45" x2="520" y1="155" y2="155"></line>
+<line stroke="#CBD5E1" stroke-width="1.5" x1="45" x2="520" y1="190" y2="190"></line>
+<!-- Y Axis Labels -->
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="35" y="24">50k</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="35" y="69">38k</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="35" y="114">25k</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="35" y="159">12k</text>
+<text fill="#64748B" font-family="Inter" font-size="11" text-anchor="end" x="35" y="193">0k</text>
+<!-- Area Path (Smooth curve) -->
+<path d="M 65 160 
+                     C 120 145, 150 130, 190 120 
+                     C 230 110, 260 85, 305 75 
+                     C 350 65, 390 55, 435 45 
+                     C 475 36, 500 28, 515 25 
+                     L 515 190 L 65 190 Z" fill="url(#areaGradient)"></path>
+<!-- Main Line Stroke -->
+<path d="M 65 160 
+                     C 120 145, 150 130, 190 120 
+                     C 230 110, 260 85, 305 75 
+                     C 350 65, 390 55, 435 45 
+                     C 475 36, 500 28, 515 25" fill="none" stroke="#00696c" stroke-linecap="round" stroke-width="3"></path>
+<!-- Target projection dotted line -->
+<line opacity="0.6" stroke="#004655" stroke-dasharray="3 3" stroke-width="1.5" x1="435" x2="520" y1="45" y2="20"></line>
+<!-- Data Circles -->
+<circle cx="65" cy="160" fill="#ffffff" r="4.5" stroke="#00696c" stroke-width="2.5"></circle>
+<circle cx="190" cy="120" fill="#ffffff" r="4.5" stroke="#00696c" stroke-width="2.5"></circle>
+<circle cx="305" cy="75" fill="#ffffff" r="4.5" stroke="#00696c" stroke-width="2.5"></circle>
+<circle cx="435" cy="45" fill="#ffffff" r="4.5" stroke="#00696c" stroke-width="2.5"></circle>
+<circle cx="515" cy="25" fill="#00696c" r="5" stroke="#ffffff" stroke-width="2"></circle>
+<!-- Dynamic Tooltip at current progress (435, 45) -->
+<g>
+<rect fill="#004655" height="25" rx="5" width="90" x="390" y="8"></rect>
+<polygon fill="#004655" points="430,33 440,33 435,37"></polygon>
+<text fill="#ffffff" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="435" y="24">R$ 42.600</text>
+</g>
+<!-- X Axis Labels -->
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="65" y="208">Semana 1</text>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="190" y="208">Semana 2</text>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="305" y="208">Semana 3</text>
+<text fill="#004655" font-family="Inter" font-size="12" font-weight="600" text-anchor="middle" x="435" y="208">Semana 4 (Atual)</text>
+<text fill="#64748B" font-family="Inter" font-size="12" text-anchor="middle" x="515" y="208">Proj.</text>
+</svg>
+</div>
+</div>
+<div class="mt-2 pt-3 flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+          Receita média por procedimento: R$ 485,00
+        </span>
+<button class="text-primary hover:underline font-label-sm text-label-sm font-semibold inline-flex items-center gap-1" type="button">
+          Exportar Relatório DRE
+          <span class="material-symbols-outlined text-[14px]">download</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function setActiveFilter(btn) {
+    const parent = btn.parentElement;
+    const buttons = parent.querySelectorAll('button');
+    buttons.forEach(b => {
+      b.className = 'px-3 py-1 rounded font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors';
+    });
+    btn.className = 'px-3 py-1 rounded font-label-sm text-label-sm bg-primary text-on-primary shadow-sm font-semibold transition-colors';
+  }
+</script><script class="">
+  function toggleSidebar() {
+    const sidebar = document.getElementById('app-sidebar');
+    const header = document.getElementById('app-header');
+    const wrapper = document.getElementById('main-layout-wrapper');
+    const icon = document.getElementById('sidebar-toggle-icon');
+    const btn = document.getElementById('sidebar-toggle-btn');
+    const textNodes = document.querySelectorAll('.sidebar-text');
+    const submenus = document.querySelectorAll('.sidebar-submenu');
+    const navLinks = document.querySelectorAll('.sidebar-nav-link');
+
+    const isCollapsed = sidebar.classList.contains('w-20');
+
+    if (isCollapsed) {
+      sidebar.classList.remove('w-20');
+      sidebar.classList.add('w-64');
+      header.style.left = '16rem';
+      wrapper.style.paddingLeft = '16rem';
+      icon.textContent = 'first_page';
+      btn.setAttribute('title', 'Recolher menu');
+      textNodes.forEach(el => el.classList.remove('hidden'));
+      submenus.forEach(el => el.classList.remove('hidden'));
+      navLinks.forEach(el => {
+        el.classList.remove('justify-center');
+        el.classList.add('gap-space-md');
+      });
+    } else {
+      sidebar.classList.remove('w-64');
+      sidebar.classList.add('w-20');
+      header.style.left = '5rem';
+      wrapper.style.paddingLeft = '5rem';
+      icon.textContent = 'last_page';
+      btn.setAttribute('title', 'Expandir menu');
+      textNodes.forEach(el => el.classList.add('hidden'));
+      submenus.forEach(el => el.classList.add('hidden'));
+      navLinks.forEach(el => {
+        el.classList.remove('gap-space-md');
+        el.classList.add('justify-center');
+      });
+    }
+  }
+</script></main></div>
+
+</body></html>

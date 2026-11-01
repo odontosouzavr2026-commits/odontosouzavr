@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production builds
+build/
+dist/
+
+# Testing
+coverage/
+
+# Misc & OS
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and sensitive keys
+.env*
+!.env.example
+*.local
+
+# Pasta de Imagens e Referências do Sistema
+1 - imagens do sistema/
+"1 - imagens do sistema/"
+# Backups and archives
+.backups/
+*.tar.gz
+*.zip
+odonto-souza.zip
+
+# Editor and agent internal cache
+.vscode/
+.idea/
+.gemini/
+.system_generated/
