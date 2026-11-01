@@ -33,6 +33,7 @@ Sempre que decisões importantes de arquitetura, correções ou novos fluxos for
   - **Editar / Alterar:** Cor **Laranja** (`text-amber-500`).
   - **Excluir / Deletar / Inativar / Remover:** Cor **Vermelho** (`text-rose-600`).
   - **Efeito Hover Obrigatório:** Redução de 20% da opacidade no hover (`hover:opacity-80 transition-opacity cursor-pointer`), garantindo consistência visual e previsibilidade de interação em todo o sistema.
+- **Regra Obrigatória de Deploy (Responsabilidade & Autorização Prévia):** A função de executar os deploys do sistema é **SEMPRE e exclusivamente do assistente de IA**. Antes de realizar qualquer deploy (ou push para a branch `main` que acione o deploy automático na Vercel/GitHub), o assistente **DEVE OBRIGATORIAMENTE pedir autorização expressa ao usuário**. Nenhum deploy será disparado sem a confirmação prévia do usuário. Registrado também na regra estrita [`.agents/rules/deploy.md`](file:///c:/OdontoSouza/.agents/rules/deploy.md).
 - **Padrão Oficial dos Botões de Importar e Exportar em Todo o Sistema:**
   - **Importar:** Cor de fundo **Azul** (`bg-blue-500`), cor da fonte e ícone **Branco e Negrito** (`text-white font-extrabold`), com efeito hover reduzindo 20% da opacidade (`hover:opacity-80 transition-opacity cursor-pointer`).
   - **Exportar:** Cor de fundo **Laranja** (`bg-orange-500`), cor da fonte e ícone **Branco e Negrito** (`text-white font-extrabold`), com efeito hover reduzindo 20% da opacidade (`hover:opacity-80 transition-opacity cursor-pointer`).
