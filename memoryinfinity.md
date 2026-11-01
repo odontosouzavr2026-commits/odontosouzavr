@@ -723,6 +723,8 @@ export const brandColors = {
         - Aprimorado [`LoginView.tsx`](file:///c:/OdontoSouza/src/components/auth/LoginView.tsx) para apresentar mensagens precisas do Supabase Auth e assegurar login imediato para pacientes cadastrados.
       - **Armazenamento de Arquivos S3 (Contabo Object Storage):**
         - Validação de conexão e autenticação executada com sucesso contra o endpoint `https://usc1.contabostorage.com` (região United States Central).
+        - Bucket oficial `odontosouza` criado e ativado no S3 da Contabo.
+        - Upload de teste de imagem realizado e confirmado com sucesso via `PutObjectCommand` e `ListObjectsV2Command`.
         - Biblioteca `@aws-sdk/client-s3` integrada e pronta para upload e leitura de exames, fotos radiológicas e PDFs sem expor segredos.
         - Criado [`vercel.json`](file:///c:/OdontoSouza/vercel.json) configurado com rotas SPA (`rewrites: [ { source: "/(.*)", destination: "/index.html" } ]`) para impedir erros 404 em recarregamento de página ou rotas profundas.
         - Criado [`.npmrc`](file:///c:/OdontoSouza/.npmrc) com `legacy-peer-deps=true` e removido conflito de versão do `esbuild` no [`package.json`](file:///c:/OdontoSouza/package.json), garantindo que o `npm install` no ambiente da Vercel conclua sem falha de peer dependencies.
