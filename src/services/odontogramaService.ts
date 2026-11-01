@@ -115,18 +115,17 @@ export const odontogramaService = {
           : 'Hígido'
       }. Valor: R$ ${preco.toFixed(2)}. ${observacao ? `Notas: ${observacao}` : ''} Realizado por ${dentistaNome}.`;
 
-      await supabase
-        .from('evolucoes_prontuario')
-        .insert([
+      try {
+        await supabase.from('evolucoes_prontuario').insert([
           {
             paciente_id: pacienteId,
             descricao: descricaoClinica,
             data_hora: new Date().toISOString(),
           },
-        ])
-        .catch((err) => {
-          console.warn('[odontogramaService.saveProcedimentoDente] Aviso evolucoes_prontuario:', err);
-        });
+        ]);
+      } catch (err) {
+        console.warn('[odontogramaService.saveProcedimentoDente] Aviso evolucoes_prontuario:', err);
+      }
 
       return true;
     } catch (err) {

@@ -40,7 +40,7 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
   );
 
   // Status Real da Conexão WhatsApp
-  const [waState, setWaState] = useState<'open' | 'connecting' | 'close'>('open');
+  const [waState, setWaState] = useState<'open' | 'connecting' | 'close' | 'refused' | string>('open');
   const [waProfile, setWaProfile] = useState<string>('Everaldo Souza • (66) 99254-4324');
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
@@ -61,7 +61,7 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
     try {
       const { state } = await evolutionApiService.getConnectionState();
       setWaState(state);
-      const details = await evolutionApiService.getInstanceDetails();
+      const details = await evolutionApiService.fetchInstanceDetails();
       if (details) {
         const name = details.profileName || 'WhatsApp OdontoSouza';
         const jid = details.ownerJid ? details.ownerJid.split('@')[0] : '';

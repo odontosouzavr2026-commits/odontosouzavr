@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Download,
   UserPlus,
@@ -56,31 +56,26 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
   };
 
   // Carregar dados reais do Supabase Self-Hosted
-  useEffect(() => {
-    let isMounted = true;
-    async function loadFromSupabase() {
-      try {
-        const [data, convenios] = await Promise.all([
-          pacientesService.getPacientes(),
-          conveniosService.getConvenios().catch(() => []),
-        ]);
-        if (isMounted) {
-          setPacientes(data || []);
-          setConveniosList(convenios.filter((c) => c.status === 'Ativo'));
-          setMetrics((prev) => ({
-            ...prev,
-            totalPatients: data ? data.length : 0,
-          }));
-        }
-      } catch (e) {
-        console.warn('Fallback para dados padrão:', e);
-      }
+  const loadFromSupabase = useCallback(async () => {
+    try {
+      const [data, convenios] = await Promise.all([
+        pacientesService.getPacientes(),
+        conveniosService.getConvenios().catch(() => []),
+      ]);
+      setPacientes(data || []);
+      setConveniosList(convenios.filter((c) => c.status === 'Ativo'));
+      setMetrics((prev) => ({
+        ...prev,
+        totalPatients: data ? data.length : 0,
+      }));
+    } catch (e) {
+      console.warn('Fallback para dados padrão:', e);
     }
-    loadFromSupabase();
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  useEffect(() => {
+    loadFromSupabase();
+  }, [loadFromSupabase]);
 
   // View Switching (Regra Arquitetural Mobile-First: Sem Modais)
   const [currentView, setCurrentView] = useState<'list' | 'form'>('list');
@@ -146,7 +141,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
               pacienteId: editingPatient.id,
             });
             if (res.error) {
-              showToast(res.error, 'warning');
+              showToast(res.error);
             } else {
               showToast(`Nova senha de acesso atualizada para ${data.portalEmail}.`);
             }
@@ -164,7 +159,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
 
         const maxNum = Math.max(
           pacientes.length + 1,
-          ...pacientes.map((p) => parseInt((p.code || '').replace(/\D/g, ''), 10) || 0) + 1
+          ...(pacientes.map((p) => (parseInt((p.code || '').replace(/\D/g, ''), 10) || 0) + 1))
         );
         const tempId = `pac-${Date.now()}`;
         const newPatient: PacienteItem = {
@@ -203,7 +198,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
               telefone: data.whatsapp,
             });
             if (res.error) {
-              showToast(res.error, 'warning');
+              showToast(res.error);
             } else {
               showToast(`Acesso ao Portal criado para ${data.portalEmail} (Perfil: paciente).`);
             }
@@ -212,7 +207,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
           }
         }
 
-        await loadPacientes();
+        await loadFromSupabase();
       }
     } catch (err) {
       console.warn('Erro ao sincronizar com Supabase:', err);

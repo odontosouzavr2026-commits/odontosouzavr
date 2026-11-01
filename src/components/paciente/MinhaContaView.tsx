@@ -39,10 +39,10 @@ import { AgendarConsultaView } from './AgendarConsultaView';
 import { MeusDadosView } from './MeusDadosView';
 import { SegurancaView } from './SegurancaView';
 import { agendaService } from '../../services/agendaService';
+import { PacienteItem } from '../../types/pacientes';
 import {
   pacientePortalService,
   PacientePortalData,
-  PacienteItem,
   ProcedimentoHistoricoItem,
   ResumoFinanceiroPortal,
   PlanoTratamentoPortal,
@@ -448,7 +448,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
           ? proceduresHistory
               .map(
                 (p, idx) =>
-                  `${idx + 1}. ${p.data} - ${p.denteRegiao}: ${p.procedimento} (${p.status})`
+                  `${idx + 1}. ${p.date} - ${p.region}: ${p.procedure} (${p.status})`
               )
               .join('\n')
           : 'Nenhum procedimento anterior registrado no prontuário.';
@@ -1200,7 +1200,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                       </div>
 
                       <h4 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
-                        {treatmentPlan?.tituloPlano || (patientData?.condicoes_medicas ? `Atenção: ${patientData.condicoes_medicas}` : 'Saúde Bucal em Dia')}
+                        {treatmentPlan?.tituloPlano || (patientData?.medicalConditions ? `Atenção: ${patientData.medicalConditions}` : 'Saúde Bucal em Dia')}
                       </h4>
                       <p className="text-xs text-slate-500 mt-1">
                         {treatmentPlan
@@ -1826,13 +1826,13 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     emitirNotificacaoClinica({
                       tipo: 'cancelamento_agendamento',
                       titulo: 'Consulta Desmarcada pelo Paciente',
-                      mensagem: `${patientData.nome} desmarcou a consulta agendada para ${currentAppointment.dateLabel}.`,
+                      mensagem: `${patientData?.fullName || 'Paciente'} desmarcou a consulta agendada para ${currentAppointment.dateLabel}.`,
                       detalhes: {
-                        pacienteNome: patientData.nome,
-                        pacienteTelefone: patientData.telefone,
-                        pacienteEmail: patientData.email,
+                        pacienteNome: patientData?.fullName || 'Paciente',
+                        pacienteTelefone: patientData?.phone || '',
+                        pacienteEmail: patientData?.email || '',
                         dataConsulta: currentAppointment.dateLabel,
-                        horarioConsulta: currentAppointment.time,
+                        horarioConsulta: currentAppointment.dateLabel,
                         procedimento: currentAppointment.procedure,
                         dentista: currentAppointment.dentist,
                         motivo: 'Desmarcado pelo paciente na Área do Paciente.',

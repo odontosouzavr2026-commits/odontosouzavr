@@ -60,7 +60,7 @@ export const ConexoesWhatsAppView: React.FC<ConexoesWhatsAppViewProps> = ({
         setQrCodeBase64(null);
 
         // Busca detalhes enriquecidos da instância
-        const details = await evolutionApiService.getInstanceDetails(instanceName);
+        const details = await evolutionApiService.fetchInstanceDetails(instanceName);
         if (details) {
           if (details.profileName) setProfileName(details.profileName);
           if (details.ownerJid) {

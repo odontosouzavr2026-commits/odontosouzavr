@@ -82,18 +82,18 @@ export const estoqueService = {
 
       return data.map((c: any, index: number) => ({
         id: c.id,
-        equipamento: c.equipamento,
+        equipamento: c.equipamento || 'Autoclave Cristófoli 21L',
         numeroCicloDia: index + 1,
-        dataHora: new Date(c.data_inicio).toLocaleString('pt-BR'),
-        temperatura: `${c.temperatura_atingida || 134}°C`,
-        pressao: `${c.pressao_atingida || 2.2} bar`,
+        dataHora: new Date(c.data_inicio || Date.now()).toLocaleString('pt-BR'),
+        temperatura: `${c.temperatura_atingida || 134} °C`,
+        pressao: `${c.pressao_atingida || 2.15} bar`,
         tempoEsterilizacao: `${c.tempo_esterilizacao_minutos || 15} min`,
-        indicadorQuimicoVirado: c.indicador_quimico_ok !== false,
-        indicadorBiologicoOk: c.indicador_biologico_ok !== false,
-        operador: 'Patrícia Lima (Gerente)',
-        status: c.status === 'Liberado' ? 'Liberado' : 'Em Andamento',
-        pacotesLiberados: 12,
-        observacoes: c.observacoes,
+        indicadorQuimico: (c.indicador_quimico_ok !== false ? 'Aprovado (Classe 5)' : 'Reprovado') as 'Aprovado (Classe 5)' | 'Reprovado',
+        indicadorBiologico: (c.indicador_biologico_ok !== false ? 'Negativo (Aprovado)' : 'Pendente (Incubadora)') as 'Negativo (Aprovado)' | 'Pendente (Incubadora)',
+        responsavelNome: c.responsavel || 'Patrícia Lima (Gerente)',
+        pacotesEsterilizados: c.pacotes_liberados || 12,
+        loteEtiqueta: c.lote_etiqueta || `LOT-${new Date().getFullYear()}${String(index + 1).padStart(3, '0')}`,
+        validadePacotes: c.validade_pacotes || '7 dias',
       }));
     } catch (err) {
       console.error('[estoqueService.getCiclos] Exceção:', err);

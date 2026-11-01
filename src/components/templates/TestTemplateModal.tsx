@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, User, Phone, CheckCircle, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import { WhatsAppTemplate } from '../../types/templates';
 import { useToast } from '../../contexts/ToastContext';
-import { pacientesService, PacienteItem } from '../../services/pacientesService';
+import { pacientesService } from '../../services/pacientesService';
+import { PacienteItem } from '../../types/pacientes';
 import { templateService } from '../../services/templateService';
 
 interface TestTemplateModalProps {
@@ -34,8 +35,8 @@ export const TestTemplateModal: React.FC<TestTemplateModalProps> = ({
           const first = list[0];
           setSelectedPatientId(first.id);
           setPatientName(first.name);
-          if (first.whatsapp || first.phone) {
-            setPhone(first.whatsapp || first.phone || '');
+          if (first.whatsapp) {
+            setPhone(first.whatsapp);
           }
         }
       } catch (e) {
@@ -62,8 +63,8 @@ export const TestTemplateModal: React.FC<TestTemplateModalProps> = ({
     const found = patientsList.find((p) => p.id === val);
     if (found) {
       setPatientName(found.name);
-      if (found.whatsapp || found.phone) {
-        setPhone(found.whatsapp || found.phone || '');
+      if (found.whatsapp) {
+        setPhone(found.whatsapp);
       }
     }
   };
@@ -169,7 +170,7 @@ export const TestTemplateModal: React.FC<TestTemplateModalProps> = ({
                 {patientsList.length > 0 ? (
                   patientsList.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.prontuario || 'Cadastrado'})
+                      {p.name} ({p.code || 'Cadastrado'})
                     </option>
                   ))
                 ) : (

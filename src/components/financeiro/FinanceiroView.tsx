@@ -601,7 +601,7 @@ export const FinanceiroView: React.FC<FinanceiroViewProps> = ({
         }
         itemDetails={
           deleteConfirmTx
-            ? `${deleteConfirmTx.category} • R$ ${deleteConfirmTx.value.toLocaleString('pt-BR', {
+            ? `${deleteConfirmTx.category} • R$ ${deleteConfirmTx.amount.toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
               })} • ${deleteConfirmTx.type === 'receita' ? 'Receita' : 'Despesa'}`
             : undefined

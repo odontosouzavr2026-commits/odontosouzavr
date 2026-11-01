@@ -516,7 +516,7 @@ export const OdontogramView: React.FC<OdontogramViewProps> = ({
 
       if (patientId) {
         await odontogramaService.saveProcedimentoDente({
-          pacienteId,
+          pacienteId: patientId,
           dente: selectedId,
           face: facesString,
           condicao: formStatus,

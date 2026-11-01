@@ -75,7 +75,7 @@ const mapPacienteToActiveInfo = (p: PacienteItem): ActivePatientInfo => {
       ? `${p.lastConsultation.date} (${p.lastConsultation.procedure || 'Consulta'})`
       : 'Hoje',
     doctor: p.lastConsultation?.dentist || 'Dr. Frankisney Souza',
-    photoUrl: p.avatarUrl || undefined,
+    photoUrl: p.avatarUrl || '',
     alerts,
     allergies: p.allergies,
     clinicalNotes: p.clinicalNotes,
@@ -179,8 +179,8 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
                 birthDate: '',
                 insurance: 'Particular',
                 lastVisit: 'Hoje',
-                doctor: inAttendanceApp.dentist || 'Dr. Frankisney Souza',
-                photoUrl: undefined,
+                doctor: inAttendanceApp.dentistaId || 'Dr. Frankisney Souza',
+                photoUrl: '',
                 alerts: [],
               });
             }
@@ -246,6 +246,7 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
         insurance: 'Particular',
         lastVisit: 'Hoje',
         doctor: 'Dr. Frankisney Souza',
+        photoUrl: '',
         alerts: [],
         isEncaixe: qp.isEncaixe,
       });
@@ -383,22 +384,23 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
 
       // 3. Salvar Evolução Clínica no Prontuário Eletrônico
       if (patient.id && !patient.id.startsWith('default') && !patient.id.startsWith('mock-')) {
-        await supabase
-          .from('evolucoes_prontuario')
-          .insert([
-            {
-              paciente_id: patient.id,
-              descricao: `Atendimento finalizado com êxito. Procedimentos realizados: ${
-                procedures.length > 0
-                  ? procedures.map((p) => `${p.tooth ? p.tooth + ': ' : ''}${p.name}`).join('; ')
-                  : 'Consulta / Avaliação Clínica'
-              }. Valor: R$ ${valorFinal.toFixed(2)}.`,
-              data_hora: new Date().toISOString(),
-            },
-          ])
-          .catch((err) => {
-            console.warn('[handleConcludeAttendance] Aviso evolução:', err);
-          });
+        try {
+          await supabase
+            .from('evolucoes_prontuario')
+            .insert([
+              {
+                paciente_id: patient.id,
+                descricao: `Atendimento finalizado com êxito. Procedimentos realizados: ${
+                  procedures.length > 0
+                    ? procedures.map((p) => `${p.tooth ? p.tooth + ': ' : ''}${p.name}`).join('; ')
+                    : 'Consulta / Avaliação Clínica'
+                }. Valor: R$ ${valorFinal.toFixed(2)}.`,
+                data_hora: new Date().toISOString(),
+              },
+            ]);
+        } catch (err) {
+          console.warn('[handleConcludeAttendance] Aviso evolução:', err);
+        }
       }
 
       // 4. Liberar a Cadeira Clínica e atualizar a Fila do Dia

@@ -8,8 +8,8 @@ export const pacientesService = {
       // Busca pacientes, agendamentos e evoluções em paralelo para calcular a última consulta real de cada um
       const [pacientesRes, agendamentosRes, evolucoesRes] = await Promise.all([
         supabase.rpc('obter_pacientes'),
-        supabase.rpc('obter_agendamentos').then((r) => r.data || []).catch(() => []),
-        supabase.from('evolucoes_prontuario').select('*').then((r) => r.data || []).catch(() => []),
+        Promise.resolve(supabase.rpc('obter_agendamentos')).then((r) => r.data || []).catch(() => []),
+        Promise.resolve(supabase.from('evolucoes_prontuario').select('*')).then((r) => r.data || []).catch(() => []),
       ]);
 
       const data = pacientesRes.data;

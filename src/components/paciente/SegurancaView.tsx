@@ -166,17 +166,7 @@ export const SegurancaView: React.FC<SegurancaViewProps> = ({
           patientData?.email
         );
         if (isMounted && rawLogs && rawLogs.length > 0) {
-          setLogs(
-            rawLogs.map((l) => ({
-              id: l.id,
-              event: l.evento,
-              dateTime: l.dataHora,
-              channel: l.canal,
-              ip: l.ip,
-              status: l.status as any,
-              statusColor: l.statusColor,
-            }))
-          );
+          setLogs(rawLogs);
         }
       } catch (err) {
         console.warn('Erro ao carregar logs de auditoria:', err);
@@ -284,7 +274,7 @@ export const SegurancaView: React.FC<SegurancaViewProps> = ({
       );
 
       if (!res.success) {
-        throw new Error(res.error || 'Erro ao atualizar senha no Supabase');
+        throw new Error(res.message || 'Erro ao atualizar senha no Supabase');
       }
 
       setCurrentPassword('');
