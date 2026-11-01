@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Image as ImageIcon,
   Maximize2,
@@ -6,25 +6,98 @@ import {
   X,
   CheckCircle2,
   Sparkles,
+  Upload,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { ComparadorAntesDepoisModal } from './ComparadorAntesDepoisModal';
+import { storageService } from '../../services/storageService';
+import { useToast } from '../../contexts/ToastContext';
+
+export interface RadiologyImageItem {
+  id?: string;
+  title: string;
+  date: string;
+  url: string;
+}
 
 interface RadiologyGalleryCardProps {
-  images?: Array<{ title: string; date: string; url: string }>;
+  pacienteId?: string;
+  pacienteNome?: string;
+  images?: RadiologyImageItem[];
+  onImagesChange?: (images: RadiologyImageItem[]) => void;
 }
 
 export const RadiologyGalleryCard: React.FC<RadiologyGalleryCardProps> = ({
-  images = [],
+  pacienteId = 'paciente-geral',
+  pacienteNome = 'Paciente',
+  images: initialImages = [],
+  onImagesChange,
 }) => {
-  const [selectedImage, setSelectedImage] = useState<{ title: string; date: string; url: string } | null>(null);
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageList, setImageList] = useState<RadiologyImageItem[]>(initialImages);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<RadiologyImageItem | null>(null);
   const [captureFeedback, setCaptureFeedback] = useState<string | null>(null);
   const [isComparadorOpen, setIsComparadorOpen] = useState(false);
 
+  const images = imageList;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const uploadRes = await storageService.uploadArquivo({
+        file,
+        pacienteId,
+        categoria: 'exames',
+        filename: file.name,
+      });
+
+      if (!uploadRes.success || !uploadRes.url) {
+        throw new Error(uploadRes.error || 'Falha ao salvar exame no storage');
+      }
+
+      const newImg: RadiologyImageItem = {
+        id: `img-${Date.now()}`,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        date: new Date().toLocaleDateString('pt-BR'),
+        url: uploadRes.url,
+      };
+
+      const updated = [newImg, ...imageList];
+      setImageList(updated);
+      onImagesChange?.(updated);
+      toast.success('Exame Anexado', 'Radiografia / exame digital gravado no storage com sucesso!');
+    } catch (err: any) {
+      console.error('[RadiologyGalleryCard] Erro upload:', err);
+      toast.error('Erro no upload', err?.message || 'Falha ao salvar no storage da Contabo.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteImage = async (img: RadiologyImageItem) => {
+    try {
+      if (img.url && img.url.includes('contabostorage.com')) {
+        await storageService.deleteArquivo(img.url);
+      }
+      const updated = imageList.filter((item) => item.url !== img.url);
+      setImageList(updated);
+      onImagesChange?.(updated);
+      setSelectedImage(null);
+      toast.info('Exame Excluído', 'O exame foi removido permanentemente do storage.');
+    } catch (err: any) {
+      toast.error('Erro ao excluir', err?.message || 'Não foi possível excluir o exame.');
+    }
+  };
+
   const handleCapturePhoto = () => {
-    setCaptureFeedback('Foto capturada da câmera intraoral e anexada ao prontuário!');
-    setTimeout(() => {
-      setCaptureFeedback(null);
-    }, 3000);
+    fileInputRef.current?.click();
   };
 
   return (
@@ -96,15 +169,34 @@ export const RadiologyGalleryCard: React.FC<RadiologyGalleryCardProps> = ({
         </div>
       )}
 
+      {/* Input Oculto de Upload para Contabo S3 */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/*,application/pdf"
+        className="hidden"
+      />
+
       {/* Botões de Ação de Imagens */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button
           onClick={handleCapturePhoto}
-          className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#005F73] transition-colors text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200/60"
+          disabled={isUploading}
+          className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#005F73] transition-colors text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200/60 disabled:opacity-50"
           type="button"
         >
-          <Camera className="w-3.5 h-3.5" />
-          <span>Câmera Intraoral</span>
+          {isUploading ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#005F73]" />
+              <span>Enviando para o Storage...</span>
+            </>
+          ) : (
+            <>
+              <Upload className="w-3.5 h-3.5" />
+              <span>Anexar Exame / RX</span>
+            </>
+          )}
         </button>
 
         <button
@@ -121,7 +213,7 @@ export const RadiologyGalleryCard: React.FC<RadiologyGalleryCardProps> = ({
       <ComparadorAntesDepoisModal
         isOpen={isComparadorOpen}
         onClose={() => setIsComparadorOpen(false)}
-        pacienteNome="Mariana Rios"
+        pacienteNome={pacienteNome}
         dentistaNome="Dr. Frankisney Souza"
       />
 
@@ -134,12 +226,22 @@ export const RadiologyGalleryCard: React.FC<RadiologyGalleryCardProps> = ({
                 <h3 className="font-bold text-sm">{selectedImage.title}</h3>
                 <p className="text-[11px] text-slate-400">Data de Tomada: {selectedImage.date}</p>
               </div>
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDeleteImage(selectedImage)}
+                  title="Excluir este exame do storage Contabo"
+                  className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-900/40 transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </button>
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="p-4 flex items-center justify-center bg-black min-h-[350px]">
               <img

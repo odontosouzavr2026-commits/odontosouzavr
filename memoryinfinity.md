@@ -723,9 +723,11 @@ export const brandColors = {
         - Aprimorado [`LoginView.tsx`](file:///c:/OdontoSouza/src/components/auth/LoginView.tsx) para apresentar mensagens precisas do Supabase Auth e assegurar login imediato para pacientes cadastrados.
       - **Armazenamento de Arquivos S3 (Contabo Object Storage):**
         - Validação de conexão e autenticação executada com sucesso contra o endpoint `https://usc1.contabostorage.com` (região United States Central).
-        - Bucket oficial `odontosouza` criado e ativado no S3 da Contabo.
-        - Upload de teste de imagem realizado e confirmado com sucesso via `PutObjectCommand` e `ListObjectsV2Command`.
-        - Biblioteca `@aws-sdk/client-s3` integrada e pronta para upload e leitura de exames, fotos radiológicas e PDFs sem expor segredos.
+        - Bucket oficial `odontosouza` ativado no S3 da Contabo.
+        - **Estrutura Hierárquica Rigorosa:** Arquivos organizados por `{ANO}/{MÊS}/{ID_PACIENTE}/{CATEGORIA}/{ARQUIVO}` (categorias: `perfil`, `exames`, `documentos`, `radiografias`, `receitas`).
+        - **Ciclo de Vida & Manutenção Ativa:** Implementada exclusão imediata de arquivos órfãos ao substituir fotos de perfil, remover anexos ou excluir pacientes via [`storageService.ts`](file:///c:/OdontoSouza/src/services/storageService.ts).
+        - **Rotas Serverless Seguras na Vercel:** Criados endpoints `/api/storage/upload` e `/api/storage/delete` isolando as credenciais da Contabo exclusivamente no servidor (sem expor nenhuma chave ao navegador do usuário).
+        - Integrado ao formulário de pacientes ([`PacienteFormView.tsx`](file:///c:/OdontoSouza/src/components/pacientes/PacienteFormView.tsx)) para envio de avatar e à galeria de exames ([`RadiologyGalleryCard.tsx`](file:///c:/OdontoSouza/src/components/atendimento/RadiologyGalleryCard.tsx)).
         - Criado [`vercel.json`](file:///c:/OdontoSouza/vercel.json) configurado com rotas SPA (`rewrites: [ { source: "/(.*)", destination: "/index.html" } ]`) para impedir erros 404 em recarregamento de página ou rotas profundas.
         - Criado [`.npmrc`](file:///c:/OdontoSouza/.npmrc) com `legacy-peer-deps=true` e removido conflito de versão do `esbuild` no [`package.json`](file:///c:/OdontoSouza/package.json), garantindo que o `npm install` no ambiente da Vercel conclua sem falha de peer dependencies.
         - Atualizado `.gitignore` para ignorar a pasta interna `.vercel`.

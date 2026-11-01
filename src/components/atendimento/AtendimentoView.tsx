@@ -672,7 +672,9 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
           />
         )}
         {mobileTab === 'evolucao' && <ClinicalEvolutionCard />}
-        {mobileTab === 'rx' && <RadiologyGalleryCard />}
+        {mobileTab === 'rx' && (
+          <RadiologyGalleryCard pacienteId={patient.id} pacienteNome={patient.name} />
+        )}
         {mobileTab === 'resumo' && (
           <div className="space-y-4">
             <FinancialCheckoutCard
@@ -733,7 +735,7 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
             onSelectQueuePatient={handleSelectQueuePatient}
             onViewSchedule={onViewSchedule}
           />
-          <RadiologyGalleryCard />
+          <RadiologyGalleryCard pacienteId={patient.id} pacienteNome={patient.name} />
           <FinancialCheckoutCard
             subtotal={subtotal}
             coverage={coverage}

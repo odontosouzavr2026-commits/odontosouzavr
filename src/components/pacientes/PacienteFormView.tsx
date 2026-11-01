@@ -31,6 +31,7 @@ import {
 import { PacienteItem, ConvenioTipo } from '../../types/pacientes';
 import { ConvenioItem } from '../../types/convenios';
 import { conveniosService } from '../../services/conveniosService';
+import { storageService } from '../../services/storageService';
 import { useToast } from '../../contexts/ToastContext';
 import { isValidCPF, formatCPF, cleanDigits } from '../../utils/documentValidation';
 import { formatCEP } from '../../services/cepService';
@@ -63,6 +64,7 @@ export const PacienteFormView: React.FC<PacienteFormViewProps> = ({
 
   const [name, setName] = useState(initialData?.name || '');
   const [avatarUrl, setAvatarUrl] = useState(initialData?.avatarUrl || '');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [cpf, setCpf] = useState(initialData?.cpf || '');
   const [rg, setRg] = useState(initialData?.rg || '');
   const [birthDate, setBirthDate] = useState(initialData?.birthDate || '');
@@ -291,6 +293,9 @@ export const PacienteFormView: React.FC<PacienteFormViewProps> = ({
   };
 
   const handleRemovePhoto = () => {
+    if (avatarUrl && avatarUrl.includes('contabostorage.com')) {
+      storageService.deleteArquivo(avatarUrl).catch(() => {});
+    }
     setAvatarUrl('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -298,7 +303,7 @@ export const PacienteFormView: React.FC<PacienteFormViewProps> = ({
     toast.info('Foto removida', 'O paciente utilizará o avatar padrão com iniciais.');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.warning('Campo obrigatório', 'O nome completo do paciente é obrigatório.');
@@ -342,11 +347,36 @@ export const PacienteFormView: React.FC<PacienteFormViewProps> = ({
       }
     }
 
+    // Upload seguro da foto para o Contabo S3 se for imagem local/base64
+    let finalAvatarUrl = avatarUrl.trim();
+    if (finalAvatarUrl.startsWith('data:image/')) {
+      setIsUploadingPhoto(true);
+      try {
+        const uploadRes = await storageService.uploadArquivo({
+          file: finalAvatarUrl,
+          pacienteId: initialData?.id || `pac-${Date.now()}`,
+          categoria: 'perfil',
+          filename: `avatar_${Date.now()}.png`,
+        });
+        if (uploadRes.success && uploadRes.url) {
+          finalAvatarUrl = uploadRes.url;
+          // Se o paciente já tinha uma foto antiga no S3, remove a anterior
+          if (initialData?.avatarUrl && initialData.avatarUrl !== finalAvatarUrl && initialData.avatarUrl.includes('contabostorage.com')) {
+            storageService.deleteArquivo(initialData.avatarUrl).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn('[PacienteFormView] Aviso ao salvar foto no S3:', err);
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    }
+
     const age = calculateAge(birthDate);
 
     onSave({
       name,
-      avatarUrl: avatarUrl.trim() || undefined,
+      avatarUrl: finalAvatarUrl || undefined,
       cpf: cpf || '000.000.000-00',
       rg: rg.trim() || undefined,
       birthDate,
@@ -1092,10 +1122,22 @@ export const PacienteFormView: React.FC<PacienteFormViewProps> = ({
 
             <button
               type="submit"
-              className="w-full sm:w-auto px-7 py-2.5 rounded-xl bg-[#005F73] text-white font-bold text-sm hover:bg-[#004b5c] transition shadow-md shadow-[#005F73]/20 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isUploadingPhoto}
+              className={`w-full sm:w-auto px-7 py-2.5 rounded-xl bg-[#005F73] text-white font-bold text-sm hover:bg-[#004b5c] transition shadow-md shadow-[#005F73]/20 flex items-center justify-center gap-2 cursor-pointer ${
+                isUploadingPhoto ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              <Check className="w-4 h-4 text-emerald-300" />
-              <span>{initialData ? 'Atualizar Paciente' : 'Salvar Paciente'}</span>
+              {isUploadingPhoto ? (
+                <>
+                  <Upload className="w-4 h-4 animate-spin text-white" />
+                  <span>Enviando para o Storage...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 text-emerald-300" />
+                  <span>{initialData ? 'Atualizar Paciente' : 'Salvar Paciente'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>
