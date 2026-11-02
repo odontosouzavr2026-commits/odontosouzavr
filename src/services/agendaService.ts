@@ -526,8 +526,9 @@ export const agendaService = {
         const capDate = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
 
         emitirNotificacaoClinica({
+          id: `notif-ag-${savedResult.id}`,
           tipo: 'novo_agendamento',
-          titulo: 'Novo Agendamento Confirmado 🦷✨',
+          titulo: 'Novo Agendamento Confirmado',
           mensagem: `${pName || 'Paciente'} agendou ${cleanProcName || 'Consulta'} para ${capDate} às ${timeFormatted}.`,
           detalhes: {
             pacienteNome: pName || 'Paciente',

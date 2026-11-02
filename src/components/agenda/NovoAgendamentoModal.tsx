@@ -268,24 +268,6 @@ export const NovoAgendamentoModal: React.FC<NovoAgendamentoModalProps> = ({
       delayMs: 5000,
     });
 
-    // Emite notificação para a clínica com campainha dupla
-    emitirNotificacaoClinica({
-      tipo: 'novo_agendamento',
-      titulo: 'Novo Agendamento Confirmado',
-      mensagem: `${created.patientName} - ${created.procedure} em ${date} às ${time}.`,
-      detalhes: {
-        pacienteNome: created.patientName,
-        pacienteTelefone: matchedPaciente?.whatsapp || '',
-        dataConsulta: date,
-        horarioConsulta: time,
-        procedimento: created.procedure,
-        dentista: 'Dr. Frankisney Souza',
-        origem: 'recepcao',
-        observacoes: created.notes,
-      },
-      linkRota: 'agenda',
-    });
-
     setIsSuccess(true);
     toast.success(
       'Agendamento confirmado!',

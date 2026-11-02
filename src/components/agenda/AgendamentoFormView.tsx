@@ -330,26 +330,6 @@ export const AgendamentoFormView: React.FC<AgendamentoFormViewProps> = ({
       notes: notes.trim() || undefined,
     };
 
-
-
-    // Emite notificação para o painel com campainha de recepção dupla
-    emitirNotificacaoClinica({
-      tipo: editingAppointment ? 'alteracao_agendamento' : 'novo_agendamento',
-      titulo: editingAppointment ? 'Agendamento Atualizado' : 'Novo Agendamento na Recepção',
-      mensagem: `${created.patientName} - ${created.procedure} em ${date} às ${time}.`,
-      detalhes: {
-        pacienteNome: created.patientName,
-        pacienteTelefone: resolvedPhone || '',
-        dataConsulta: date,
-        horarioConsulta: time,
-        procedimento: created.procedure,
-        dentista: 'Dr. Frankisney Souza',
-        origem: 'recepcao',
-        observacoes: created.notes,
-      },
-      linkRota: 'agenda',
-    });
-
     toast.success(
       editingAppointment ? 'Agendamento atualizado!' : 'Agendamento confirmado!',
       `Consulta para ${created.patientName} em ${date} às ${time} ${editingAppointment ? 'atualizada' : 'agendada'} com sucesso.`

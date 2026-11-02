@@ -946,3 +946,12 @@ export const brandColors = {
   - **Correção de ReferenceError TDZ no Formulário de Agendamento (`AgendamentoFormView.tsx`):**
     - Corrigido erro de Temporal Dead Zone onde `matchedProcedimento` era utilizado para calcular `durationMinutes` antes de sua declaração na função `handleSubmit`, gerando `ReferenceError: Cannot access 'T' before initialization` ao clicar em "Confirmar Agendamento".
     - No `NotificationContext.tsx`, adicionada desconexão graciosa caso o handshake WebSocket do Supabase Realtime falhe no gateway, eliminando o loop de reconexão no console do navegador.
+  - **Desduplicação Estrita de Notificações de Agendamento:**
+    - Identificada causa das 3 notificações simultâneas ao criar uma consulta:
+      1) Emissão redundante inline no formulário (`AgendamentoFormView.tsx` / `NovoAgendamentoModal.tsx`);
+      2) Emissão de serviço em `agendaService.saveAgendamento`;
+      3) Polling/sincronização do Supabase em `carregarNotificacoesReais` que não identificava notificações manuais já exibidas por terem IDs distintos.
+    - Solução implementada:
+      - Removidas emissões redundantes nos formulários, centralizando o disparo em `agendaService.saveAgendamento` com o ID canônico `notif-ag-${id}`.
+      - Criada função de impressão digital canônica `getNotifFingerprint` (`ag_${paciente}_${horario}`) aplicada em `adicionarNotificacao`, `carregarNotificacoesReais`, `BroadcastChannel` e `emitirNotificacaoClinica`.
+      - Garantido que para qualquer agendamento existirá estritamente **UMA única notificação e um único toque de sino**.

@@ -49,6 +49,20 @@ function getReadIds(): Set<string> {
   }
 }
 
+// Fingerprint canônico para desduplicação estrita de notificações de agendamentos e pacientes
+export const getNotifFingerprint = (n: {
+  id?: string;
+  detalhes?: NotificacaoDetalhes;
+  mensagem?: string;
+}): string => {
+  if (n.detalhes?.pacienteNome && n.detalhes?.horarioConsulta) {
+    const pac = n.detalhes.pacienteNome.toLowerCase().trim();
+    const hora = (n.detalhes.horarioConsulta || '').trim();
+    return `ag_${pac}_${hora}`;
+  }
+  return n.id || n.mensagem || '';
+};
+
 // Helper para salvar IDs lidos no localStorage
 function saveReadIds(ids: Set<string>): void {
   try {
@@ -213,7 +227,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       setNotificacoes((prev) => {
-        // Notificações manuais que não vieram do Supabase agendamentos/pacientes
+        const seenFps = new Set<string>();
+        const deduped: NotificacaoClinica[] = [];
+
+        // 1. Prioridade absoluta para as notificações reais do Supabase
+        for (const n of todasReais) {
+          const fp = getNotifFingerprint(n);
+          if (!seenFps.has(fp)) {
+            seenFps.add(fp);
+            deduped.push(n);
+          }
+        }
+
+        // 2. Preserva notificações manuais apenas se NÃO pertencerem a um agendamento já presente
         const idsExistentes = new Set(todasReais.map((n) => n.id));
         const manuais = prev.filter(
           (n) =>
@@ -224,6 +250,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             !n.mensagem?.includes('Sábado às 10:00') &&
             !n.detalhes?.dataConsulta?.includes('Próximo Sábado')
         );
+
+        for (const m of manuais) {
+          const fp = getNotifFingerprint(m);
+          if (!seenFps.has(fp)) {
+            seenFps.add(fp);
+            deduped.push(m);
+          }
+        }
 
         // Detecta se há algum agendamento novo que acabou de chegar (não existia no estado anterior)
         if (!isFirstLoadRef.current && somHabilitado) {
@@ -244,7 +278,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
         isFirstLoadRef.current = false;
 
-        return [...todasReais, ...manuais].sort(
+        return deduped.sort(
           (a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
         );
       });
@@ -278,17 +312,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         const { type, payload } = event.data || {};
 
         if (type === 'NOVA_NOTIFICACAO' && payload) {
+          const fpPayload = getNotifFingerprint(payload);
+          let added = false;
           setNotificacoes((prev) => {
-            if (prev.some((n) => n.id === payload.id || n.mensagem === payload.mensagem)) {
+            if (prev.some((n) => n.id === payload.id || n.mensagem === payload.mensagem || getNotifFingerprint(n) === fpPayload)) {
               return prev;
             }
+            added = true;
             return [payload, ...prev];
           });
 
-          if (somHabilitado) {
-            playReceptionBell2x();
+          if (added) {
+            if (somHabilitado) {
+              playReceptionBell2x();
+            }
+            toast.info(payload.titulo, payload.mensagem);
           }
-          toast.info(payload.titulo, payload.mensagem);
         } else if (type === 'REFRESH_NOTIFICACOES') {
           carregarNotificacoesReais();
         }
@@ -350,6 +389,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   const adicionarNotificacao = useCallback(
     (
       dados: {
+        id?: string;
         tipo: NotificacaoTipo;
         titulo: string;
         mensagem: string;
@@ -359,7 +399,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
       tocarSom: boolean = true
     ) => {
       const nova: NotificacaoClinica = {
-        id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        id: dados.id || ('notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6)),
         tipo: dados.tipo,
         titulo: dados.titulo,
         mensagem: dados.mensagem,
@@ -369,24 +409,26 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         linkRota: dados.linkRota,
       };
 
+      const fpNova = getNotifFingerprint(nova);
+      let wasAdded = false;
+
       setNotificacoes((prev) => {
-        // Evita duplicar notificações com a mesma mensagem recebida nos últimos 5 segundos
-        const duplicada = prev.some(
-          (n) =>
-            n.mensagem === dados.mensagem &&
-            Math.abs(new Date(n.dataHora).getTime() - Date.now()) < 5000
-        );
+        const duplicada = prev.some((n) => {
+          if (n.id === nova.id || n.mensagem === dados.mensagem) return true;
+          return getNotifFingerprint(n) === fpNova;
+        });
         if (duplicada) return prev;
+        wasAdded = true;
         return [nova, ...prev];
       });
 
-      // Toca a campainha de recepção 2x se habilitado
-      if (tocarSom && somHabilitado) {
-        playReceptionBell2x();
+      // Toca a campainha e exibe Toast apenas se não for duplicata
+      if (wasAdded) {
+        if (tocarSom && somHabilitado) {
+          playReceptionBell2x();
+        }
+        toast.info(dados.titulo, dados.mensagem);
       }
-
-      // Alerta visual Toast de alta visibilidade
-      toast.info(dados.titulo, dados.mensagem);
     },
     [somHabilitado, toast]
   );
@@ -576,6 +618,7 @@ export const useNotifications = () => {
  * Função utilitária global para despachar notificações de qualquer lugar do app (todas as abas e serviços)
  */
 export function emitirNotificacaoClinica(dados: {
+  id?: string;
   tipo: NotificacaoTipo;
   titulo: string;
   mensagem: string;
@@ -583,8 +626,9 @@ export function emitirNotificacaoClinica(dados: {
   linkRota?: 'agenda' | 'pacientes' | 'dashboard' | 'atendimento';
 }): void {
   if (typeof window !== 'undefined') {
+    const notifId = dados.id || ('notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6));
     const nova: NotificacaoClinica = {
-      id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      id: notifId,
       tipo: dados.tipo,
       titulo: dados.titulo,
       mensagem: dados.mensagem,
@@ -594,7 +638,9 @@ export function emitirNotificacaoClinica(dados: {
       linkRota: dados.linkRota,
     };
 
-    // 1. Salva em localStorage
+    const fpNova = getNotifFingerprint(nova);
+
+    // 1. Salva em localStorage apenas se não houver duplicata
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const list: NotificacaoClinica[] = raw ? JSON.parse(raw) : [];
@@ -604,12 +650,15 @@ export function emitirNotificacaoClinica(dados: {
           !n.mensagem?.includes('Sábado às 10:00') &&
           !n.detalhes?.dataConsulta?.includes('Próximo Sábado')
       );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([nova, ...limpo]));
+      const jaExiste = limpo.some((n) => n.id === nova.id || getNotifFingerprint(n) === fpNova);
+      if (!jaExiste) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([nova, ...limpo]));
+      }
     } catch {
       // silencioso
     }
 
-    // 2. Dispara BroadcastChannel para todas as abas da aplicação
+    // 2. Dispara BroadcastChannel para outras abas da aplicação
     try {
       if ('BroadcastChannel' in window) {
         const bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -620,9 +669,9 @@ export function emitirNotificacaoClinica(dados: {
       // silencioso
     }
 
-    // 3. Dispara CustomEvent local para a aba atual
+    // 3. Dispara CustomEvent local para a aba atual com o ID preservado
     window.dispatchEvent(
-      new CustomEvent('odonto:notificacao', { detail: dados })
+      new CustomEvent('odonto:notificacao', { detail: { ...dados, id: notifId } })
     );
   }
 }
