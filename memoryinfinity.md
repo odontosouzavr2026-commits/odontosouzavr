@@ -979,6 +979,12 @@ export const brandColors = {
       4. Paciente respondeu "1" no WhatsApp;
       5. Webhook no n8n recebeu a resposta em tempo real, normalizou o texto, registrou auditoria no Supabase (`CONFIRMACAO_WHATSAPP_SIM`) e enviou mensagem instantânea de agradecimento ao paciente.
       6. Sistema 100% autônomo, estável e operacional 24/7 na VPS.
+  - **Fluxo Conversacional Inteligente com Amarração Estrita no WhatsApp:**
+    - O workflow de recepção do WhatsApp no n8n (`kr1yAMMTpD91OXVS`) foi estruturado com roteamento triplo nativo:
+      1. **Resposta 1 (ou "sim"):** Mantém a consulta confirmada e envia agradecimento imediato.
+      2. **Resposta 2 (ou "não" / "remarcar"):** Registra a desmarcação no sistema e envia a mensagem oficial com o link de auto-atendimento (`https://app.odontosouzavr.com.br`) para escolha de um novo dia/horário.
+      3. **Resposta Inválida (qualquer outro texto, ex: "oi", "bom dia", etc.):** O bot detecta que a mensagem não é 1 nem 2 e envia orientação automática solicitando que responda exclusivamente 1 para Confirmar ou 2 para Remarcar, com o telefone de suporte da clínica.
+      4. Validado em teste real com envio de "oi" seguido de "2", recebendo respectivamente a orientação correta e o link de remarcação.
   - **Bloqueio de Edição e Exclusão para Agendamentos Concluídos:**
     - Para respeitar rigorosamente a trajetória clínica, prontuário e histórico do paciente, qualquer agendamento com status `Concluído`:
       1. Tem os botões de ação **Editar** (lápis) e **Excluir** (lixeira) automaticamente ocultados no card da linha do tempo (`TimelineSchedule.tsx`);
