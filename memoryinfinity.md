@@ -896,3 +896,13 @@ export const brandColors = {
       - **3. Polling Inteligente de Alta Frequência:** Adicionado intervalo automático de 12 segundos em `NotificationContext` que consulta o Supabase buscando os agendamentos e pacientes mais recentes ordenados por `criado_em DESC`.
       - **4. Atualização Instantânea no Clique do Sino (`AppLayout.tsx`):** Ao clicar sobre o botão do sino para abrir o dropdown de notificações, `carregarNotificacoesReais()` é acionado no mesmo milissegundo, garantindo que o usuário visualize a listagem atualizada.
       - **5. Persistência de Leitura no `localStorage` (`odonto_notificacoes_lidas_ids_v2`):** As notificações marcadas como lidas mantêm seu status preservado entre recarregamentos e ciclos de polling, impedindo que notificações antigas retornem como não-lidas.
+  - **Prevenção Estrita de Duplicidade em Disparos WhatsApp (NPS & Lembrete 2h no `automationEngine.ts`):**
+    - **Causa Raiz Identificada do Envio Duplo:**
+      - O motor de automações verificava o envio de templates unicamente no `localStorage` do navegador da aba atual (`odonto_nps_sent_...`), o qual é isolado por navegador/janela anônima/dispositivo. Ao abrir o site institucional em outra aba ou navegador, a rotina executava sem detectar o envio anterior.
+      - O lock no `localStorage` só era gravado após a conclusão da requisição assíncrona HTTP da Evolution API (`await dispatchCustomText`), gerando janela de concorrência (*race condition*).
+      - Além disso, múltiplas abas abertas executavam loops de 60 segundos simultâneos sem eleição de liderança.
+    - **Solução Definitiva Implementada:**
+      - **1. Idempotência e Consulta Obrigatória no Supabase:** Antes de disparar qualquer pesquisa de satisfação (`tpl-5`) ou lembrete de 2h (`tpl-1`), o motor consulta a tabela `auditoria_logs` do Supabase buscando registros existentes pelo ID do agendamento, nome do paciente e telefone na data atual. Se já houver registro, o envio é abortado imediatamente.
+      - **2. Gravação de Lock Pré-Disparo:** Registrado lock de envio atômico (`DISPATCHING_timestamp`) antes do início da chamada à Evolution API.
+      - **3. Eleição de Aba Líder com Web Locks API (`navigator.locks`):** Implementado `LOCK_NAME = 'odonto_automation_engine_leader_lock'`, garantindo que apenas UMA aba por navegador execute o ciclo de automações.
+      - **4. Associação Estrita do `entidade_id` em `auditoria_logs`:** Atualizado `dispatchCustomText` e `send2HourReminder` em `whatsappNotificationService` para gravar o UUID do agendamento na coluna `entidade_id`.

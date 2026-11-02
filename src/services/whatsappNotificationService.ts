@@ -255,6 +255,7 @@ export const whatsappNotificationService = {
     time: string;
     dentist?: string;
     pacienteId?: string;
+    agendamentoId?: string;
   }): Promise<boolean> {
     try {
       let phone = params.phone;
@@ -331,6 +332,7 @@ export const whatsappNotificationService = {
       try {
         await supabase.from('auditoria_logs').insert({
           entidade: 'agendamentos',
+          entidade_id: params.agendamentoId || null,
           acao: 'DISPARO_WHATSAPP_LEMBRETE_2H',
           detalhes: `Lembrete 2h antes (tpl-1) entregue para ${params.patientName} (${phone}) - Consulta às ${params.time}.`,
         });
@@ -469,7 +471,13 @@ export const whatsappNotificationService = {
   async dispatchCustomText(
     phone: string,
     text: string,
-    meta: { templateId: string; templateName: string; recipientName: string }
+    meta: {
+      templateId: string;
+      templateName: string;
+      recipientName: string;
+      agendamentoId?: string;
+      pacienteId?: string;
+    }
   ): Promise<boolean> {
     try {
       await evolutionApiService.sendTextMessage(phone, text);
@@ -492,6 +500,7 @@ export const whatsappNotificationService = {
       try {
         await supabase.from('auditoria_logs').insert({
           entidade: 'agendamentos',
+          entidade_id: meta.agendamentoId || null,
           acao: 'DISPARO_WHATSAPP_AUTOMATICO',
           detalhes: `${meta.templateName} (${meta.templateId}) entregue para ${meta.recipientName} (${phone}).`,
         });
