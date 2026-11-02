@@ -511,6 +511,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   };
 
   const handleEditSlot = (slot: TimelineSlot) => {
+    if (slot.status?.toLowerCase().includes('conclu')) {
+      showToast('Agendamentos concluídos não podem ser editados para respeitar a trajetória do paciente.');
+      return;
+    }
     const existing = supabaseAppointments.find((a) => a.id === slot.id);
     const toEdit: AgendaAppointmentItem = existing || {
       id: slot.id,
@@ -567,6 +571,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
   // Excluir agendamento no Supabase e atualizar a linha do tempo imediatamente
   const handleDeleteSlot = async (slotToDelete: TimelineSlot) => {
+    if (slotToDelete.status?.toLowerCase().includes('conclu')) {
+      showToast('Agendamentos concluídos não podem ser excluídos para respeitar o prontuário do paciente.');
+      return;
+    }
     try {
       await agendaService.deleteAgendamento(slotToDelete.id);
       setSupabaseAppointments((prev) => prev.filter((a) => a.id !== slotToDelete.id));

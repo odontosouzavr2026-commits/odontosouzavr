@@ -400,6 +400,13 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
 
   // Ação Editar: Abre a edição do agendamento clínico (ou procedimentos)
   const handleEdit = (item: TimelineSlot) => {
+    if (item.status?.toLowerCase().includes('conclu')) {
+      toast.warning(
+        'Ação Bloqueada',
+        'Agendamentos com status Concluído não podem ser editados para preservar a trajetória clínica do paciente.'
+      );
+      return;
+    }
     if (onEditSlot) {
       onEditSlot(item);
       return;
@@ -415,6 +422,13 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
 
   // Ação Excluir: Abre o modal estilizado padronizado de confirmação de exclusão
   const handleRequestDelete = (item: TimelineSlot) => {
+    if (item.status?.toLowerCase().includes('conclu')) {
+      toast.warning(
+        'Ação Bloqueada',
+        'Agendamentos com status Concluído não podem ser excluídos para preservar o prontuário e histórico do paciente.'
+      );
+      return;
+    }
     setDeleteConfirmSlot(item);
   };
 
@@ -843,25 +857,30 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
                     <Eye className="w-4 h-4" />
                   </button>
 
-                  {/* Editar: Laranja */}
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(item)}
-                    className="p-1.5 rounded-lg text-amber-500 hover:opacity-80 transition-opacity cursor-pointer"
-                    title="Editar agendamento"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
+                  {/* Editar e Excluir: Ocultos quando o status for Concluído para preservar a trajetória */}
+                  {!st.includes('conclu') && (
+                    <>
+                      {/* Editar: Laranja */}
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(item)}
+                        className="p-1.5 rounded-lg text-amber-500 hover:opacity-80 transition-opacity cursor-pointer"
+                        title="Editar agendamento"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
 
-                  {/* Excluir: Vermelho */}
-                  <button
-                    type="button"
-                    onClick={() => handleRequestDelete(item)}
-                    className="p-1.5 rounded-lg text-rose-600 hover:opacity-80 transition-opacity cursor-pointer"
-                    title="Excluir agendamento e liberar horário"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                      {/* Excluir: Vermelho */}
+                      <button
+                        type="button"
+                        onClick={() => handleRequestDelete(item)}
+                        className="p-1.5 rounded-lg text-rose-600 hover:opacity-80 transition-opacity cursor-pointer"
+                        title="Excluir agendamento e liberar horário"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* BOTÃO PARA INICIAR / ACESSAR O ATENDIMENTO CLÍNICO DO PACIENTE */}
@@ -1011,66 +1030,83 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
             </div>
 
             {/* Ações do Rodapé do Modal */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => handleRequestDelete(viewModalSlot)}
-                className="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:opacity-80 rounded-xl transition-opacity flex items-center gap-1.5 cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Excluir Agendamento</span>
-              </button>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={isSendingWhatsApp}
-                  onClick={() => handleSendWhatsAppNotification(viewModalSlot)}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Enviar lembrete de consulta do template ativo via WhatsApp"
-                >
-                  {isSendingWhatsApp ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            {(() => {
+              const isSlotConcluido = viewModalSlot.status?.toLowerCase().includes('conclu');
+              return (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                  {!isSlotConcluido ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRequestDelete(viewModalSlot)}
+                      className="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:opacity-80 rounded-xl transition-opacity flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Excluir Agendamento</span>
+                    </button>
                   ) : (
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <div />
                   )}
-                  <span>{isSendingWhatsApp ? 'Enviando...' : 'Lembrete WhatsApp'}</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const slot = viewModalSlot;
-                    setViewModalSlot(null);
-                    handleStartAttendance(slot);
-                  }}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#005F73] hover:bg-[#004959] rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Stethoscope className="w-3.5 h-3.5" />
-                  <span>Iniciar Atendimento</span>
-                </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isSlotConcluido && (
+                      <button
+                        type="button"
+                        disabled={isSendingWhatsApp}
+                        onClick={() => handleSendWhatsAppNotification(viewModalSlot)}
+                        className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Enviar lembrete de consulta do template ativo via WhatsApp"
+                      >
+                        {isSendingWhatsApp ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        )}
+                        <span>{isSendingWhatsApp ? 'Enviando...' : 'Lembrete WhatsApp'}</span>
+                      </button>
+                    )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewModalSlot(null);
-                    handleEdit(viewModalSlot);
-                  }}
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-amber-500 hover:opacity-80 rounded-xl shadow-xs transition-opacity flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  <span>Editar Agendamento</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const slot = viewModalSlot;
+                        setViewModalSlot(null);
+                        handleStartAttendance(slot);
+                      }}
+                      className={`px-3.5 py-1.5 text-xs font-bold text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isSlotConcluido
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : 'bg-[#005F73] hover:bg-[#004959]'
+                      }`}
+                    >
+                      <Stethoscope className="w-3.5 h-3.5" />
+                      <span>{isSlotConcluido ? 'Ver Prontuário' : 'Iniciar Atendimento'}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setViewModalSlot(null)}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-                >
-                  Fechar
-                </button>
-              </div>
-            </div>
+                    {!isSlotConcluido && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewModalSlot(null);
+                          handleEdit(viewModalSlot);
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-bold text-white bg-amber-500 hover:opacity-80 rounded-xl shadow-xs transition-opacity flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Editar Agendamento</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setViewModalSlot(null)}
+                      className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

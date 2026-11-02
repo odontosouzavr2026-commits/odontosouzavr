@@ -979,3 +979,8 @@ export const brandColors = {
       4. Paciente respondeu "1" no WhatsApp;
       5. Webhook no n8n recebeu a resposta em tempo real, normalizou o texto, registrou auditoria no Supabase (`CONFIRMACAO_WHATSAPP_SIM`) e enviou mensagem instantânea de agradecimento ao paciente.
       6. Sistema 100% autônomo, estável e operacional 24/7 na VPS.
+  - **Bloqueio de Edição e Exclusão para Agendamentos Concluídos:**
+    - Para respeitar rigorosamente a trajetória clínica, prontuário e histórico do paciente, qualquer agendamento com status `Concluído`:
+      1. Tem os botões de ação **Editar** (lápis) e **Excluir** (lixeira) automaticamente ocultados no card da linha do tempo (`TimelineSchedule.tsx`);
+      2. No modal de detalhes do agendamento, os botões de exclusão, edição e lembrete de WhatsApp são removidos, mantendo visível apenas a ação **Ver Prontuário**;
+      3. Adicionadas travas defensivas nas funções `handleEdit`, `handleRequestDelete`, `handleEditSlot` e `handleDeleteSlot` em `AgendaView.tsx` e `TimelineSchedule.tsx`, impedindo alterações acidentais mesmo via atalhos.
