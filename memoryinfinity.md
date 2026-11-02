@@ -971,3 +971,11 @@ export const brandColors = {
     - Implementadas as chaves persistentes `odonto_notifications_deleted_ids_v2` e `odonto_notifications_cleared_at_v2` no `localStorage`.
     - Ao clicar em "Limpar histórico", o timestamp atual (`clearedAt`) é gravado e todas as notificações anteriores são ignoradas tanto no carregamento do banco quanto na sincronização em tempo real via `BroadcastChannel` (`LIMPAR_NOTIFICACOES`).
     - Ao excluir individualmente pela lixeira, o ID é adicionado à lista negra de excluídos (`deletedIds`) e sincronizado entre abas (`EXCLUIR_NOTIFICACAO`), impedindo que a notificação retorne nos ciclos de polling.
+  - **Validação de Ponta a Ponta do Ciclo Completo de Lembretes & Confirmação:**
+    - Testado e validado em produção com sucesso total:
+      1. Agendamento criado pelo sistema;
+      2. Exatamente 3 minutos depois, o cron no n8n identificou o agendamento no Supabase e disparou o lembrete via Evolution API em texto formatado universal;
+      3. Mensagem recebida perfeitamente no WhatsApp do paciente;
+      4. Paciente respondeu "1" no WhatsApp;
+      5. Webhook no n8n recebeu a resposta em tempo real, normalizou o texto, registrou auditoria no Supabase (`CONFIRMACAO_WHATSAPP_SIM`) e enviou mensagem instantânea de agradecimento ao paciente.
+      6. Sistema 100% autônomo, estável e operacional 24/7 na VPS.
