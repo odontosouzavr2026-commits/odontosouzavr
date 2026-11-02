@@ -315,7 +315,22 @@ export const whatsappNotificationService = {
         msg = build2HourReminderMessage(params);
       }
 
-      await evolutionApiService.sendTextMessage(phone, msg);
+      // Tenta enviar com botões interativos oficiais da clínica (SIM / NÃO)
+      try {
+        await evolutionApiService.sendButtons(
+          phone,
+          'Odonto Souza • Confirmação de Consulta 🦷',
+          msg,
+          [
+            { id: 'btn_confirmar', displayText: 'SIM' },
+            { id: 'btn_cancelar', displayText: 'NÃO' },
+          ],
+          'Odonto Souza Odontologia Especializada'
+        );
+      } catch (btnErr) {
+        console.warn('[whatsappNotificationService] Fallback para texto simples:', btnErr);
+        await evolutionApiService.sendTextMessage(phone, msg);
+      }
 
       templateService.logDispatch({
         id: `dsp-${Date.now()}`,

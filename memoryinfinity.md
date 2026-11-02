@@ -906,3 +906,11 @@ export const brandColors = {
       - **2. Gravação de Lock Pré-Disparo:** Registrado lock de envio atômico (`DISPATCHING_timestamp`) antes do início da chamada à Evolution API.
       - **3. Eleição de Aba Líder com Web Locks API (`navigator.locks`):** Implementado `LOCK_NAME = 'odonto_automation_engine_leader_lock'`, garantindo que apenas UMA aba por navegador execute o ciclo de automações.
       - **4. Associação Estrita do `entidade_id` em `auditoria_logs`:** Atualizado `dispatchCustomText` e `send2HourReminder` em `whatsappNotificationService` para gravar o UUID do agendamento na coluna `entidade_id`.
+  - **Orquestração de Confirmações via n8n & Botões Interativos do WhatsApp (Quick Reply SIM / NÃO):**
+    - **Integração N8N (24/7 na VPS):** Criado e ativado o workflow `Odonto Souza - Confirmação e Cancelamento WhatsApp` no n8n (`kr1yAMMTpD91OXVS`) conectado ao endpoint `https://webhookn8n.odontosouzavr.com.br/webhook/odonto-whatsapp-response`.
+    - **Configuração de Webhook na Evolution API:** Instância `atendimento` configurada com webhook ativo para o evento `MESSAGES_UPSERT`, enviando em tempo real todos os cliques e respostas de pacientes diretamente para o n8n.
+    - **Envio de Botões Interativos Nativos (`sendButtons`):** Adicionado suporte oficial ao endpoint `/message/sendButtons/{instance}` da Evolution API v2, enviando botões clicáveis `[ SIM ]` e `[ NÃO ]` que aparecem nativamente no WhatsApp dos pacientes.
+    - **Fluxo Automatizado de Resposta no n8n:**
+      - **Clique em SIM:** Mantém o status `Confirmado` no Supabase, grava em `auditoria_logs` que o paciente confirmou formalmente via botão, e envia mensagem automática de agradecimento imediato.
+      - **Clique em NÃO:** Atualiza o status do agendamento para `Desmarcou` no Supabase, libera a vaga na agenda e envia mensagem de cancelamento com link para reagendamento.
+      - Funciona 24 horas por dia de forma 100% independente do navegador ou computadores da clínica.

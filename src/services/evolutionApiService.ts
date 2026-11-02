@@ -258,6 +258,54 @@ export const evolutionApiService = {
     }
   },
 
+  // 6.1 Enviar Mensagem com Botões Interativos Oficiais (Quick Reply SIM / NÃO)
+  async sendButtons(
+    recipient: string,
+    title: string,
+    description: string,
+    buttons: Array<{ id: string; displayText: string }>,
+    footer: string = 'Odonto Souza Odontologia Especializada',
+    instance?: string
+  ): Promise<any> {
+    const target = instance || this.getInstanceName();
+    const url = `${this.getBaseUrl()}/message/sendButtons/${target}`;
+
+    let cleanNumber = recipient.replace(/\D/g, '');
+    if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+      cleanNumber = '55' + cleanNumber;
+    }
+
+    const payload = {
+      number: cleanNumber,
+      title: title.trim(),
+      description: description.trim(),
+      footer: footer.trim(),
+      buttons: buttons.map((b) => ({
+        type: 'reply',
+        displayText: b.displayText,
+        id: b.id,
+      })),
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.response?.message?.[0] || data?.message || `HTTP ${res.status}`);
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error('[evolutionApiService.sendButtons] Erro:', err.message);
+      throw err;
+    }
+  },
+
   // 7. Buscar Configuração de Webhook da Instância
   async getWebhook(instance?: string): Promise<any> {
     const target = instance || this.getInstanceName();
@@ -288,10 +336,12 @@ export const evolutionApiService = {
     const url = `${this.getBaseUrl()}/webhook/set/${target}`;
 
     const payload = {
-      enabled,
-      url: webhookUrl.trim(),
-      webhookByEvents: true,
-      events,
+      webhook: {
+        enabled,
+        url: webhookUrl.trim(),
+        webhookByEvents: false,
+        events,
+      },
     };
 
     try {
