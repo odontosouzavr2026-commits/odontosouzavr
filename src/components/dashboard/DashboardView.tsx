@@ -423,7 +423,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className={forceMobileView ? 'block' : 'block md:hidden'}>
         <MobilePatientList
           appointments={appointments}
-          onStatusChange={handleStatusChange}
           onViewAll={() => onNavigate && onNavigate('agenda')}
         />
       </div>
@@ -432,7 +431,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className={`${forceMobileView ? 'hidden' : 'hidden md:grid'} grid-cols-1 lg:grid-cols-3 gap-6 mb-6`}>
         <UpcomingAppointmentsTable
           appointments={appointments}
-          onStatusChange={handleStatusChange}
         />
         <QuickActionsPanel
           onNavigate={onNavigate}

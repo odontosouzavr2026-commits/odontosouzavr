@@ -990,6 +990,9 @@ export const brandColors = {
       1. Tem os botões de ação **Editar** (lápis) e **Excluir** (lixeira) automaticamente ocultados no card da linha do tempo (`TimelineSchedule.tsx`);
       2. No modal de detalhes do agendamento, os botões de exclusão, edição e lembrete de WhatsApp são removidos, mantendo visível apenas a ação **Ver Prontuário**;
       3. Adicionadas travas defensivas nas funções `handleEdit`, `handleRequestDelete`, `handleEditSlot` e `handleDeleteSlot` em `AgendaView.tsx` e `TimelineSchedule.tsx`, impedindo alterações acidentais mesmo via atalhos.
+  - **Remoção de Alternância Acidental de Status no Painel Administrativo:**
+    - Na tabela "Próximos Pacientes do Dia" (`UpcomingAppointmentsTable.tsx` e `MobilePatientList.tsx`), foi removido o evento `onClick` da linha e do badge de status (`handleToggleStatus` / `nextStatusMap`).
+    - Os status exibidos na tabela agora são estritamente informativos e somente leitura, prevenindo alterações acidentais de status ao clicar sobre os pacientes no painel administrativo.
   - **Fila de Encaixe com Alerta Visual Multi-Canais & Alocação Automática na Desistência com Notificação WhatsApp:**
     - Implementada a arquitetura completa de Fila de Encaixe solicitada pelo usuário:
       1. **Alerta Visual Multi-Canais:**

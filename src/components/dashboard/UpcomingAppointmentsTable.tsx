@@ -9,7 +9,6 @@ interface UpcomingAppointmentsTableProps {
 
 export const UpcomingAppointmentsTable: React.FC<UpcomingAppointmentsTableProps> = ({
   appointments,
-  onStatusChange,
 }) => {
   const [statusFilter, setStatusFilter] = useState<'Todos' | AppointmentStatus>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,20 +46,6 @@ export const UpcomingAppointmentsTable: React.FC<UpcomingAppointmentsTableProps>
       chartStr.toLowerCase().includes(query);
     return matchesStatus && matchesSearch;
   });
-
-  const nextStatusMap: Record<AppointmentStatus, AppointmentStatus> = {
-    Aguardando: 'Confirmado',
-    Confirmado: 'Em Atendimento',
-    'Em Atendimento': 'Finalizado',
-    Finalizado: 'Aguardando',
-    Cancelado: 'Aguardando',
-  };
-
-  const handleToggleStatus = (id: string, currentStatus: AppointmentStatus) => {
-    if (onStatusChange) {
-      onStatusChange(id, nextStatusMap[currentStatus]);
-    }
-  };
 
   return (
     <div className="lg:col-span-2 bg-white rounded-xl shadow-xs border border-slate-100 p-5 flex flex-col justify-between">
@@ -167,9 +152,7 @@ export const UpcomingAppointmentsTable: React.FC<UpcomingAppointmentsTableProps>
                 filteredAppointments.map((app) => (
                   <tr
                     key={app.id}
-                    className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
-                    onClick={() => handleToggleStatus(app.id, app.status)}
-                    title="Clique para alternar o status do paciente"
+                    className="hover:bg-slate-50/70 transition-colors group"
                   >
                     {/* Horário */}
                     <td className="py-3.5 px-4 font-semibold text-[#005F73]">

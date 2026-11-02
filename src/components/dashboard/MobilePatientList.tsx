@@ -10,7 +10,6 @@ interface MobilePatientListProps {
 
 export const MobilePatientList: React.FC<MobilePatientListProps> = ({
   appointments,
-  onStatusChange,
   onViewAll,
 }) => {
   const getAvatarColor = (initials: string) => {
@@ -29,14 +28,6 @@ export const MobilePatientList: React.FC<MobilePatientListProps> = ({
     let sum = 0;
     for (let i = 0; i < initials.length; i++) sum += initials.charCodeAt(i);
     return palette[sum % palette.length];
-  };
-
-  const nextStatusMap: Record<AppointmentStatus, AppointmentStatus> = {
-    Aguardando: 'Confirmado',
-    Confirmado: 'Em Atendimento',
-    'Em Atendimento': 'Finalizado',
-    Finalizado: 'Aguardando',
-    Cancelado: 'Aguardando',
   };
 
   return (
@@ -65,9 +56,7 @@ export const MobilePatientList: React.FC<MobilePatientListProps> = ({
         {appointments.map((app) => (
           <div
             key={app.id}
-            onClick={() => onStatusChange && onStatusChange(app.id, nextStatusMap[app.status])}
-            className="p-2.5 rounded-xl bg-slate-50 border border-slate-100/80 flex items-center justify-between gap-2 transition-all active:scale-[0.99] cursor-pointer"
-            title="Toque para alterar status"
+            className="p-2.5 rounded-xl bg-slate-50 border border-slate-100/80 flex items-center justify-between gap-2 transition-all"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div
