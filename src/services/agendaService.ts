@@ -30,6 +30,7 @@ export const agendaService = {
             status,
             tipo,
             observacoes,
+            criado_em,
             pacientes (id, nome, telefone, cpf, convenio),
             procedimentos (id, nome, preco_base)
           `)
@@ -55,6 +56,7 @@ export const agendaService = {
           status: d.status,
           tipo: d.tipo,
           observacoes: d.observacoes,
+          criado_em: d.criado_em,
         }));
       }
 
@@ -128,6 +130,7 @@ export const agendaService = {
           isEncaixe: isUrgent,
           notes: a.observacoes || undefined,
           actionButtonLabel,
+          createdAt: a.criado_em,
         };
       });
     } catch (err) {

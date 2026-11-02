@@ -32,6 +32,7 @@ export interface AgendaAppointmentItem {
   cancellationNotice?: string;
   notes?: string;
   actionButtonLabel?: string;
+  createdAt?: string;
 }
 
 export interface EncaixeQueueItem {

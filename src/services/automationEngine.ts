@@ -142,14 +142,29 @@ export const automationEngine = {
       }
 
       if (!app.time) continue;
-      const [h, m] = app.time.split(':').map(Number);
-      if (isNaN(h) || isNaN(m)) continue;
+      // Regra de teste solicitada pelo usuário: disparar 3 minutos DEPOIS que o agendamento foi feito
+      let shouldDispatch = false;
+      const createdAt = app.createdAt ? new Date(app.createdAt) : null;
 
-      const appStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
-      const diffMinutes = Math.round((appStartTime.getTime() - now.getTime()) / 60000);
+      if (createdAt && !isNaN(createdAt.getTime())) {
+        const diffMinutesCreated = Math.round((now.getTime() - createdAt.getTime()) / 60000);
+        // Se já passaram 3 minutos desde a criação do agendamento
+        if (diffMinutesCreated >= 3) {
+          shouldDispatch = true;
+        }
+      } else {
+        // Fallback: 3 minutos antes da consulta se createdAt não constar
+        const [h, m] = app.time.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          const appStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+          const diffMinutes = Math.round((appStartTime.getTime() - now.getTime()) / 60000);
+          if (diffMinutes >= 0 && diffMinutes <= 4) {
+            shouldDispatch = true;
+          }
+        }
+      }
 
-      // Janela de disparo configurada para teste: 3 minutos antes da consulta (entre 0 e 4 minutos à frente)
-      if (diffMinutes >= 0 && diffMinutes <= 4) {
+      if (shouldDispatch) {
         const sentKey = `${REMINDER_STORAGE_KEY_PREFIX}${app.id}_${todayStr}`;
 
         // 1. Verificação rápida em localStorage local

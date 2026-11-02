@@ -940,9 +940,8 @@ export const brandColors = {
     - **Tela de Login (`LoginView.tsx`):** Removidos links de rodapé que apontavam para "Área do Paciente" e "Ver Site Institucional", focando a tela de login exclusivamente na autenticação do sistema.
     - **Menu Suspenso do Administrador (`AppLayout.tsx`):** Removidas as opções "Site Institucional" e "Área do Paciente (/minhaconta)", mantendo apenas "Dados da Clínica", "Ajuda" (com remoção da tag/badge "Suporte") e "Sair".
     - **Tela do Paciente (`MinhaContaView.tsx`):** Removidos atalhos e botões que direcionavam para "Painel Admin (/paineladmin)" e "Site da Clínica" na sidebar desktop, drawer mobile e menu suspenso de perfil.
-  - **Ajuste da Janela de Disparo do Lembrete de Consulta para Testes:**
-    - Em `automationEngine.ts`, alterada a janela de verificação de 2 horas (105-135 minutos) para **3 minutos antes da consulta** (`diffMinutes >= 0 && diffMinutes <= 4`), permitindo testes em tempo real de agendamento e entrega pelo WhatsApp com botões SIM/NÃO.
-    - Intervalo de execução do motor reduzido para 15 segundos para resposta imediata durante os testes.
+  - **Ajuste da Regra de Disparo do Lembrete de Consulta para Testes (3 Minutos Pós-Criação):**
+    - Alterada a regra de disparo de lembrete (tanto na função PostgreSQL `public.obter_agendamentos_para_lembrete` quanto no motor frontend `automationEngine.ts`) para disparar **3 minutos DEPOIS que o agendamento foi criado** (`a.criado_em <= NOW() - INTERVAL '3 minutes'`), permitindo que testes imediatos de novos agendamentos disparem o WhatsApp exatamente 3 minutos após a sua marcação na agenda.
   - **Correção de ReferenceError TDZ no Formulário de Agendamento (`AgendamentoFormView.tsx`):**
     - Corrigido erro de Temporal Dead Zone onde `matchedProcedimento` era utilizado para calcular `durationMinutes` antes de sua declaração na função `handleSubmit`, gerando `ReferenceError: Cannot access 'T' before initialization` ao clicar em "Confirmar Agendamento".
     - No `NotificationContext.tsx`, adicionada desconexão graciosa caso o handshake WebSocket do Supabase Realtime falhe no gateway, eliminando o loop de reconexão no console do navegador.
