@@ -4,7 +4,7 @@
  * Ciclo de Vida: Upload seguro, limpeza de arquivos substituídos e exclusão completa
  */
 
-export type StorageCategoria = 'perfil' | 'exames' | 'documentos' | 'radiografias' | 'receitas';
+export type StorageCategoria = 'perfil' | 'exames' | 'documentos' | 'radiografias' | 'receitas' | 'institucional';
 
 export interface StorageUploadParams {
   file: File | Blob | string; // Suporta File/Blob ou Data URL (base64)

@@ -138,36 +138,36 @@ export interface ExameDicomItem {
 }
 
 const DEFAULT_REAL_PATIENT: PacientePortalData = {
-  id: '40000000-0000-0000-0000-000000000001',
-  code: '#OS-2026',
-  fullName: 'Paciente Odonto Souza',
-  socialName: 'Paciente',
-  rg: '00.000.000-0 SSP',
-  cpf: '000.000.000-00',
-  birthDate: '1995-01-01',
+  id: '',
+  code: '#OS-0001',
+  fullName: '',
+  socialName: '',
+  rg: '',
+  cpf: '',
+  birthDate: '',
   gender: 'Não Informado',
   maritalStatus: 'Solteiro(a)',
-  occupation: 'Não Informado',
-  avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256',
-  zipCode: '01419-001',
-  street: 'Alameda Santos',
-  number: '1470',
-  complement: 'Apto 82',
-  neighborhood: 'Cerqueira César / Jardins',
-  city: 'São Paulo',
-  state: 'SP',
-  email: 'mariana.alcantara@email.com',
-  phone: '(11) 98765-4321',
-  homePhone: '(11) 3284-9000',
-  emergencyName: 'Lucas Alcantara Costa',
-  emergencyRelation: 'Irmão',
-  emergencyPhone: '(11) 97654-3210',
-  insuranceName: 'Bradesco Dental Premium',
-  insuranceNumber: 'BRD-8923-0192',
-  insuranceValidity: '12/2026',
+  occupation: '',
+  avatarUrl: undefined,
+  zipCode: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+  email: '',
+  phone: '',
+  homePhone: '',
+  emergencyName: '',
+  emergencyRelation: '',
+  emergencyPhone: '',
+  insuranceName: 'Particular',
+  insuranceNumber: '',
+  insuranceValidity: 'Ativo',
   insuranceHolder: 'Titular',
-  allergies: 'Sensibilidade leve a Dipirona',
-  medicalConditions: 'Bruxismo cêntrico noturno moderado',
+  allergies: 'Nenhuma alergia relatada',
+  medicalConditions: 'Nenhuma condição crônica informada',
   status: 'Ativo',
 };
 
@@ -212,6 +212,17 @@ export const pacientePortalService = {
     try {
       let patientRow: any = null;
 
+      // Se nenhum dado for fornecido, tenta resgatar a sessão atual do Supabase Auth
+      if (!pacienteId && !emailOrCpf) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user?.email) {
+          emailOrCpf = authData.user.email;
+        }
+        if (authData?.user?.id && !pacienteId) {
+          pacienteId = authData.user.id;
+        }
+      }
+
       // 1. Busca por ID se fornecido
       if (pacienteId) {
         const { data } = await supabase.from('pacientes').select('*').eq('id', pacienteId).maybeSingle();
@@ -251,7 +262,7 @@ export const pacientePortalService = {
       }
 
       // 4. Se o usuário estiver autenticado mas ainda não tiver ficha de paciente cadastrada formalmente,
-      // retorna objeto em memória sem poluir a tabela de pacientes até que um cadastro real seja salvo
+      // retorna objeto em memória coerente sem foto mockada
       if (emailOrCpf && emailOrCpf.includes('@')) {
         const cleanEmail = emailOrCpf.trim();
         const { data: usr } = await supabase.from('usuarios').select('*').ilike('email', cleanEmail).maybeSingle();
@@ -280,38 +291,17 @@ export const pacientePortalService = {
 
   // Garante que o paciente exista no banco de dados real
   async ensureInitialPatientInDb(): Promise<void> {
-    try {
-      const p = DEFAULT_REAL_PATIENT;
-      await supabase.from('pacientes').upsert({
-        id: p.id,
-        nome: p.fullName,
-        foto_url: p.avatarUrl,
-        cpf: p.cpf,
-        rg: p.rg,
-        data_nascimento: p.birthDate,
-        sexo: p.gender,
-        telefone: p.phone,
-        email: p.email,
-        endereco: `${p.street}, ${p.number} - ${p.complement} - ${p.neighborhood}, ${p.city} - ${p.state} - CEP: ${p.zipCode}`,
-        convenio: p.insuranceName,
-        numero_carteirinha: p.insuranceNumber,
-        alergias: p.allergies,
-        condicoes_medicas: p.medicalConditions,
-        status: 'Ativo',
-      });
-    } catch (err) {
-      console.warn('[ensureInitialPatientInDb] Erro ao sincronizar seed de paciente:', err);
-    }
+    // Não insere pacientes mockados no banco
   },
 
   parsePacienteFromDb(row: any): PacientePortalData {
-    let street = 'Alameda Santos';
-    let number = '1470';
-    let complement = 'Apto 82';
-    let neighborhood = 'Cerqueira César / Jardins';
-    let city = 'São Paulo';
-    let state = 'SP';
-    let zipCode = '01419-001';
+    let street = '';
+    let number = '';
+    let complement = '';
+    let neighborhood = '';
+    let city = '';
+    let state = '';
+    let zipCode = '';
 
     if (row.endereco) {
       const parts = row.endereco.split(' - ');
@@ -332,19 +322,23 @@ export const pacientePortalService = {
       }
     }
 
+    // Regra Estrita: Se não tiver foto ou for foto mockada do Unsplash, mantém undefined
+    const isMockPhoto = typeof row.foto_url === 'string' && (row.foto_url.includes('unsplash.com') || row.foto_url.includes('placeholder'));
+    const validAvatarUrl = (row.foto_url && !isMockPhoto && row.foto_url.trim() !== '') ? row.foto_url.trim() : undefined;
+
     return {
       id: row.id,
       code: `#OS-${row.id.slice(0, 4).toUpperCase()}`,
       prontuario: row.prontuario || `OS-${row.id.slice(0, 4).toUpperCase()}`,
-      fullName: row.nome || DEFAULT_REAL_PATIENT.fullName,
-      socialName: (row.nome || '').split(' ').slice(0, 2).join(' ') || DEFAULT_REAL_PATIENT.socialName,
-      rg: row.rg || DEFAULT_REAL_PATIENT.rg,
-      cpf: row.cpf || DEFAULT_REAL_PATIENT.cpf,
-      birthDate: row.data_nascimento || DEFAULT_REAL_PATIENT.birthDate,
-      gender: row.sexo || DEFAULT_REAL_PATIENT.gender,
-      maritalStatus: DEFAULT_REAL_PATIENT.maritalStatus,
-      occupation: DEFAULT_REAL_PATIENT.occupation,
-      avatarUrl: row.foto_url || DEFAULT_REAL_PATIENT.avatarUrl,
+      fullName: row.nome || 'Paciente',
+      socialName: (row.nome || '').split(' ').slice(0, 2).join(' ') || 'Paciente',
+      rg: row.rg || '',
+      cpf: row.cpf || '',
+      birthDate: row.data_nascimento || '',
+      gender: row.sexo || 'Não Informado',
+      maritalStatus: row.estado_civil || 'Solteiro(a)',
+      occupation: row.profissao || '',
+      avatarUrl: validAvatarUrl,
       zipCode,
       street,
       number,
@@ -352,12 +346,12 @@ export const pacientePortalService = {
       neighborhood,
       city,
       state,
-      email: row.email || DEFAULT_REAL_PATIENT.email,
-      phone: row.telefone || DEFAULT_REAL_PATIENT.phone,
-      homePhone: DEFAULT_REAL_PATIENT.homePhone,
-      emergencyName: DEFAULT_REAL_PATIENT.emergencyName,
-      emergencyRelation: DEFAULT_REAL_PATIENT.emergencyRelation,
-      emergencyPhone: DEFAULT_REAL_PATIENT.emergencyPhone,
+      email: row.email || '',
+      phone: row.telefone || '',
+      homePhone: '',
+      emergencyName: '',
+      emergencyRelation: '',
+      emergencyPhone: '',
       insuranceName: row.convenio || 'Particular',
       insuranceNumber: row.numero_carteirinha || '',
       insuranceValidity: 'Ativo',
@@ -389,8 +383,8 @@ export const pacientePortalService = {
         atualizado_em: new Date().toISOString(),
       };
 
-      if (dados.avatarUrl) {
-        payload.foto_url = dados.avatarUrl;
+      if (dados.avatarUrl !== undefined) {
+        payload.foto_url = dados.avatarUrl ? dados.avatarUrl : null;
       }
 
       const { error } = await supabase.from('pacientes').update(payload).eq('id', pacienteId);

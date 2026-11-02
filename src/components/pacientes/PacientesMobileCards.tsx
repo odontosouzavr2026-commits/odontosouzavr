@@ -5,6 +5,7 @@ import {
   MessageSquare,
   ClipboardList,
   Edit2,
+  Trash2,
   BellRing,
   RotateCcw,
   ChevronLeft,
@@ -27,6 +28,7 @@ interface PacientesMobileCardsProps {
   onOpenProntuario: (paciente: PacienteItem) => void;
   onCallReception?: (paciente: PacienteItem) => void;
   onInviteReturn?: (paciente: PacienteItem) => void;
+  onDelete?: (paciente: PacienteItem) => void;
 }
 
 export const PacientesMobileCards: React.FC<PacientesMobileCardsProps> = ({
@@ -41,6 +43,7 @@ export const PacientesMobileCards: React.FC<PacientesMobileCardsProps> = ({
   onOpenProntuario,
   onCallReception,
   onInviteReturn,
+  onDelete,
 }) => {
   const getInsuranceBadgeClass = (insurance: string) => {
     const lower = (insurance || '').toLowerCase();
@@ -232,6 +235,18 @@ export const PacientesMobileCards: React.FC<PacientesMobileCardsProps> = ({
               >
                 <Edit2 className="w-4 h-4 text-amber-500" />
               </button>
+
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(item)}
+                  aria-label={`Excluir ${item.name}`}
+                  className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 hover:opacity-80 flex items-center justify-center transition-opacity shrink-0 cursor-pointer"
+                  title="Excluir Paciente (Cascata)"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-600" />
+                </button>
+              )}
             </div>
           </div>
         ))

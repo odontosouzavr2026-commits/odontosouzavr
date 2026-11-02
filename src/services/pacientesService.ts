@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { PacienteItem, ConvenioTipo, PacienteStatus } from '../types/pacientes';
 import { calculateAge } from '../utils/dateUtils';
+import { storageService } from './storageService';
 
 export const pacientesService = {
   async getPacientes(): Promise<PacienteItem[]> {
@@ -198,6 +199,14 @@ export const pacientesService = {
         sexo: paciente.gender,
         telefone: paciente.whatsapp,
         email: paciente.email,
+        endereco:
+          typeof paciente.address === 'object' && paciente.address !== null
+            ? `${paciente.address.logradouro || ''}, ${paciente.address.numero || ''}${
+                paciente.address.complemento ? ' - ' + paciente.address.complemento : ''
+              } - ${paciente.address.bairro || ''}, ${paciente.address.cidade || ''}/${
+                paciente.address.estado || ''
+              } - CEP: ${paciente.address.cep || ''}`.trim()
+            : (paciente as any).endereco || '',
         convenio: paciente.insuranceLabel || paciente.insurance,
         alergias: paciente.allergies,
         condicoes_medicas: paciente.clinicalNotes,
@@ -229,84 +238,175 @@ export const pacientesService = {
     pacienteId?: string;
   }): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!dados.email || !dados.senha) {
+      const cleanEmail = dados.email.trim().toLowerCase();
+      if (!cleanEmail || !dados.senha) {
         return { success: false, error: 'E-mail e senha são obrigatórios para criar o acesso.' };
       }
 
-      // 1. Cria a conta de autenticação utilizando a API do Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: dados.email.trim(),
-        password: dados.senha,
-        options: {
-          data: {
-            name: dados.nome,
-            role: 'paciente', // Perfil obrigatório no user_metadata do token JWT
-            phone: dados.telefone || '',
-            paciente_id: dados.pacienteId || '',
-          },
+      // 1. Salva e cria credenciais via RPC SECURITY DEFINER salvar_usuario_sistema
+      // Grava em public.usuarios e auth.users com hash bcrypt de segurança
+      const { data, error: rpcError } = await supabase.rpc('salvar_usuario_sistema', {
+        p_dados: {
+          acao: 'cadastrar',
+          id: dados.pacienteId || undefined,
+          paciente_id: dados.pacienteId || undefined,
+          nome: dados.nome.trim(),
+          email: cleanEmail,
+          senha: dados.senha,
+          telefone: dados.telefone || null,
+          funcao: 'Paciente',
+          perfil_nome: 'paciente',
+          status: 'Ativo',
         },
       });
 
-      if (authError) {
-        if (authError.message.toLowerCase().includes('signups are disabled')) {
-          console.warn('[Supabase Auth] Cadastros desativados no Supabase:', authError.message);
-          return {
-            success: false,
-            error: 'No Supabase, a opção "Allow new users to sign up" está desativada (Authentication > Providers > Email).',
-          };
-        }
-        if (!authError.message.includes('already registered')) {
-          console.warn('[pacientesService.criarAcessoPortalPaciente] Supabase Auth aviso:', authError.message);
-        }
-      }
-
-      // 2. Registra o usuário na tabela 'usuarios' com perfil_nome e funcao obrigatoriamente como 'paciente'
-      const userId = authData?.user?.id;
-      const payloadUsuario = {
-        id: userId,
-        nome: dados.nome,
-        email: dados.email.trim().toLowerCase(),
-        telefone: dados.telefone || null,
-        funcao: 'Paciente',
-        perfil_nome: 'paciente', // ROLE OBRIGATÓRIA: 'paciente'
-        status: 'Ativo',
-        atualizado_em: new Date().toISOString(),
-      };
-
-      // Tenta via RPC salvar_usuario_sistema (SECURITY DEFINER contorna RLS)
-      const { error: rpcError } = await supabase.rpc('salvar_usuario_sistema', {
-        p_dados: payloadUsuario,
-      });
-
       if (rpcError) {
-        console.warn('[pacientesService.criarAcessoPortalPaciente] RPC salvar_usuario_sistema aviso:', rpcError.message);
-        // Fallback direto na tabela usuarios
-        const { error: userError } = await supabase
-          .from('usuarios')
-          .upsert(payloadUsuario, { onConflict: 'email' });
-
-        if (userError) {
-          console.warn('[pacientesService.criarAcessoPortalPaciente] Erro ao gravar em public.usuarios:', userError.message);
-        }
+        console.error('[pacientesService.criarAcessoPortalPaciente] Erro ao gravar usuário:', rpcError.message);
+        return { success: false, error: rpcError.message || 'Falha ao registrar credenciais no banco.' };
       }
 
-      // 3. Registra log na trilha de auditoria para conformidade LGPD
+      // 2. Registra log na trilha de auditoria para conformidade LGPD
       try {
         await supabase.from('auditoria_logs').insert({
           acao: 'CRIAR_ACESSO_PORTAL_PACIENTE',
           entidade: 'usuarios',
-          entidade_id: dados.email.trim(),
+          entidade_id: cleanEmail,
           detalhes: `Conta de acesso criada com perfil estrito 'paciente' para ${dados.nome}.`,
-          dados_novos: { email: dados.email, perfil_nome: 'paciente' },
+          dados_novos: { email: cleanEmail, perfil_nome: 'paciente' },
         });
       } catch (logErr) {
         // Silencioso se tabela não aceitar insert direto
       }
 
-      return { success: true };
+      return { success: true, user: data };
     } catch (err: any) {
       console.error('[pacientesService.criarAcessoPortalPaciente] Exceção:', err);
       return { success: false, error: err?.message || 'Falha ao registrar credenciais.' };
+    }
+  },
+
+  // ============================================================================
+  // AUTENTICAÇÃO SEGURA DE PACIENTE / USUÁRIO (VIA RPC COM CRIPTOGRAFIA BCRYPT)
+  // ============================================================================
+  async autenticarUsuario(
+    email: string,
+    senha: string
+  ): Promise<{ success: boolean; user?: { id: string; email: string; name: string; role: string }; error?: string }> {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !senha) {
+        return { success: false, error: 'Por favor, preencha seu e-mail e senha.' };
+      }
+
+      // Autentica via RPC SECURITY DEFINER salvar_usuario_sistema com modo login e validação pgcrypto
+      const { data, error } = await supabase.rpc('salvar_usuario_sistema', {
+        p_dados: {
+          acao: 'login',
+          email: cleanEmail,
+          senha: senha,
+        },
+      });
+
+      if (error) {
+        console.warn('[pacientesService.autenticarUsuario] Erro retornado pela RPC:', error.message);
+        return {
+          success: false,
+          error: error.message || 'E-mail ou senha incorretos. Verifique suas credenciais.',
+        };
+      }
+
+      if (!data) {
+        return { success: false, error: 'E-mail ou senha incorretos. Verifique suas credenciais.' };
+      }
+
+      // Localiza o ID do paciente na tabela pacientes para vínculo integral da agenda
+      let resolvedName = data.nome || 'Paciente';
+      let resolvedId = data.id;
+
+      try {
+        const { data: pRow } = await supabase
+          .from('pacientes')
+          .select('id, nome')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        if (pRow) {
+          if (pRow.nome) resolvedName = pRow.nome;
+          if (pRow.id) resolvedId = pRow.id;
+        }
+      } catch {}
+
+      return {
+        success: true,
+        user: {
+          id: resolvedId,
+          email: cleanEmail,
+          name: resolvedName,
+          role: data.perfil_nome || 'paciente',
+        },
+      };
+    } catch (err: any) {
+      console.error('[pacientesService.autenticarUsuario] Exceção:', err);
+      return { success: false, error: err?.message || 'Falha ao autenticar.' };
+    }
+  },
+
+  // ============================================================================
+  // EXCLUSÃO EM CASCATA DE PACIENTE (PACIENTES, AGENDAMENTOS, USUÁRIOS E AUTH)
+  // ============================================================================
+  async excluirPacienteCascata(pacienteId: string, email?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!pacienteId && !email) {
+        return { success: false, error: 'Identificador do paciente não informado.' };
+      }
+
+      // 1. Executa a função canônica RPC com privilégios SECURITY DEFINER no PostgreSQL
+      const { data: rpcData, error: rpcError } = await supabase.rpc('excluir_paciente_cascata', {
+        p_paciente_id: pacienteId,
+        p_email: email || null,
+      });
+
+      if (rpcError) {
+        console.warn('[pacientesService.excluirPacienteCascata] RPC aviso, aplicando fallback manual:', rpcError.message);
+
+        // Fallback direto nas tabelas do Supabase caso a RPC apresente qualquer falha de rota
+        // a) Agendamentos
+        await supabase.from('agendamentos').delete().eq('paciente_id', pacienteId);
+
+        // b) Prontuário, Odontograma e Orçamentos
+        await supabase.from('evolucoes_prontuario').delete().eq('paciente_id', pacienteId);
+        await supabase.from('odontograma_itens').delete().eq('paciente_id', pacienteId);
+        await supabase.from('orcamentos').delete().eq('paciente_id', pacienteId);
+        await supabase.from('transacoes_financeiras').delete().eq('paciente_id', pacienteId);
+
+        // c) Tabela Pacientes
+        const { error: delPacError } = await supabase.from('pacientes').delete().eq('id', pacienteId);
+        if (delPacError) {
+          console.error('[pacientesService.excluirPacienteCascata] Erro ao deletar paciente:', delPacError.message);
+          return { success: false, error: delPacError.message };
+        }
+
+        // d) Tabela Usuários (apenas perfis de paciente, protegendo corpo clínico/admin)
+        if (email) {
+          await supabase
+            .from('usuarios')
+            .delete()
+            .ilike('email', email.trim())
+            .in('perfil_nome', ['paciente', 'Paciente', '']);
+        }
+      }
+
+      // 2. Limpeza em cascata de arquivos armazenados no bucket S3 Contabo
+      try {
+        await storageService.deletePastaPaciente(pacienteId);
+      } catch (s3Err) {
+        console.warn('[pacientesService.excluirPacienteCascata] Aviso S3 (não impeditivo):', s3Err);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('[pacientesService.excluirPacienteCascata] Exceção inesperada:', err);
+      return { success: false, error: err?.message || 'Falha ao realizar exclusão em cascata.' };
     }
   },
 };

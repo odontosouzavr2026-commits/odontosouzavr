@@ -70,8 +70,8 @@ export default async function handler(req: any, res: any) {
     const targetMes = mes ? String(mes).trim().padStart(2, '0') : String(now.getMonth() + 1).padStart(2, '0');
     const cleanPacienteId = String(pacienteId).replace(/[^a-zA-Z0-9_-]/g, '') || 'paciente-geral';
     
-    // Categorias permitidas: perfil | exames | documentos | radiografias | receitas
-    const catAllowed = ['perfil', 'exames', 'documentos', 'radiografias', 'receitas'];
+    // Categorias permitidas: perfil | exames | documentos | radiografias | receitas | institucional
+    const catAllowed = ['perfil', 'exames', 'documentos', 'radiografias', 'receitas', 'institucional'];
     const cleanCategoria = catAllowed.includes(categoria) ? categoria : 'documentos';
     
     const ext = detectedMime.includes('png') ? '.png' : detectedMime.includes('pdf') ? '.pdf' : detectedMime.includes('jpeg') || detectedMime.includes('jpg') ? '.jpg' : '';

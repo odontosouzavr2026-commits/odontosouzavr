@@ -743,7 +743,33 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       </div>
                     </button>
 
-                    {/* 1.1 Área do Paciente (/minhaconta) */}
+                    {/* 1.1 Ver Site Institucional */}
+                    <button
+                      onClick={() => {
+                        handleNavClick('/');
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-slate-700 hover:text-[#005F73] hover:bg-[#005F73]/5 transition-all group cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition-colors">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-slate-800 group-hover:text-[#005F73]">
+                            Site Institucional
+                          </p>
+                          <span className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">
+                            odontosouzavr.com.br
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                          Visualizar página pública da clínica
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* 1.2 Área do Paciente (/minhaconta) */}
                     <button
                       onClick={() => {
                         handleNavClick('minhaconta');

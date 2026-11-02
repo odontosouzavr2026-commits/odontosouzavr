@@ -9,6 +9,9 @@ import {
   FileSpreadsheet,
   BellRing,
   RotateCcw,
+  Trash2,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { PacienteItem, ConvenioTipo, PacientesMetrics } from '../../types/pacientes';
 import { ConvenioItem } from '../../types/convenios';
@@ -80,6 +83,8 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
   // View Switching (Regra Arquitetural Mobile-First: Sem Modais)
   const [currentView, setCurrentView] = useState<'list' | 'form'>('list');
   const [editingPatient, setEditingPatient] = useState<PacienteItem | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<PacienteItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
 
   // Garante abertura da tela/formulário sempre no início
@@ -238,6 +243,34 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
       onNavigateToAtendimento(patient);
     } else {
       showToast(`Abrindo prontuário clínico de ${patient.name}...`);
+    }
+  };
+
+  const handleDeletePatient = (patient: PacienteItem) => {
+    setPatientToDelete(patient);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!patientToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await pacientesService.excluirPacienteCascata(patientToDelete.id, patientToDelete.email);
+      if (res.success) {
+        setPacientes((prev) => prev.filter((p) => p.id !== patientToDelete.id));
+        setMetrics((prev) => ({
+          ...prev,
+          totalPatients: Math.max(0, prev.totalPatients - 1),
+        }));
+        showToast(`Paciente "${patientToDelete.name}" e vínculos em cascata excluídos com sucesso!`);
+        await loadFromSupabase();
+      } else {
+        showToast(res.error || 'Erro ao realizar exclusão em cascata.');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Erro inesperado na exclusão.');
+    } finally {
+      setIsDeleting(false);
+      setPatientToDelete(null);
     }
   };
 
@@ -454,6 +487,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
           onOpenProntuario={handleOpenProntuario}
           onCallReception={handleCallReception}
           onInviteReturn={handleInviteReturn}
+          onDelete={handleDeletePatient}
         />
       ) : (
         <>
@@ -469,6 +503,7 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
               onEdit={handleEdit}
               onOpenProntuario={handleOpenProntuario}
               onOpenFinanceiro={handleOpenFinanceiro}
+              onDelete={handleDeletePatient}
             />
           </div>
 
@@ -485,9 +520,77 @@ export const PacientesView: React.FC<PacientesViewProps> = ({
               onOpenProntuario={handleOpenProntuario}
               onCallReception={handleCallReception}
               onInviteReturn={handleInviteReturn}
+              onDelete={handleDeletePatient}
             />
           </div>
         </>
+      )}
+
+      {/* Modal de Confirmação de Exclusão em Cascata */}
+      {patientToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-600 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  Excluir Paciente em Cascata?
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Você está prestes a excluir <strong className="text-slate-800">{patientToDelete.name}</strong> ({patientToDelete.code}).
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/60 border border-rose-100 rounded-xl p-3 text-xs text-rose-800 space-y-1.5 leading-relaxed">
+              <p className="font-semibold text-rose-900 flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                Esta ação apagará permanentemente:
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-700">
+                <li>Registro do paciente na tabela <strong>pacientes</strong></li>
+                <li>Todos os agendamentos na <strong>agenda</strong></li>
+                <li>Prontuário clínico, odontograma e orçamentos vinculados</li>
+                <li>Conta de usuário e acesso no <strong>Supabase Auth</strong></li>
+                <li>Arquivos e documentos no storage da clínica</li>
+              </ul>
+              <p className="text-[10px] text-rose-600/90 pt-1 font-medium italic">
+                * Contas da equipe administrativa ou dentistas com o mesmo e-mail são preservadas por segurança.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setPatientToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Excluindo em cascata...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Confirmar Exclusão</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

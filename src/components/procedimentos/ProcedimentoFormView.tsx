@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   FileText,
@@ -17,6 +17,7 @@ import {
 import { ProcedimentoItem, ProcedimentoCategoria } from '../../types/procedimentos';
 import { useToast } from '../../contexts/ToastContext';
 import { scrollToTop } from '../../utils/scrollUtils';
+import { procedimentosService } from '../../services/procedimentosService';
 
 interface ProcedimentoFormViewProps {
   initialData?: ProcedimentoItem | null;
@@ -32,11 +33,7 @@ export const ProcedimentoFormView: React.FC<ProcedimentoFormViewProps> = ({
   isMobile = false,
 }) => {
   const toast = useToast();
-
-  // Sempre rola para o topo no momento da abertura do formulário
-  useEffect(() => {
-    scrollToTop();
-  }, []);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [code, setCode] = useState(initialData?.code || '');
   const [name, setName] = useState(initialData?.name || '');
@@ -59,6 +56,46 @@ export const ProcedimentoFormView: React.FC<ProcedimentoFormViewProps> = ({
     initialData?.syncWithDrSouza ?? true
   );
 
+  // Gera código sequencial automático (ex: 0101, 0102, 0103...)
+  const generateAutoCode = async () => {
+    try {
+      const procs = await procedimentosService.getProcedimentos();
+      if (!procs || procs.length === 0) {
+        setCode('0101');
+        return;
+      }
+      const numbers = procs
+        .map((p) => {
+          const digits = (p.code || '').replace(/\D/g, '');
+          const val = parseInt(digits, 10);
+          return isNaN(val) ? 0 : val;
+        })
+        .filter((n) => n > 0);
+
+      if (numbers.length > 0) {
+        const next = Math.max(...numbers) + 1;
+        setCode(String(next).padStart(4, '0'));
+      } else {
+        const next = 101 + procs.length;
+        setCode(String(next).padStart(4, '0'));
+      }
+    } catch {
+      setCode('0101');
+    }
+  };
+
+  // Sempre rola para o topo, gera código automático e foca no campo Nome do Procedimento
+  useEffect(() => {
+    scrollToTop();
+    if (!initialData?.code) {
+      generateAutoCode();
+    }
+    const timer = setTimeout(() => {
+      nameInputRef.current?.focus();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [initialData]);
+
   const durationOptions = [15, 30, 45, 60, 75, 90];
 
   const categoryLabels: Record<ProcedimentoCategoria, string> = {
@@ -74,8 +111,7 @@ export const ProcedimentoFormView: React.FC<ProcedimentoFormViewProps> = ({
   };
 
   const handleSuggestCode = () => {
-    const randomCode = `PR-0${Math.floor(100 + Math.random() * 900)}`;
-    setCode(randomCode);
+    generateAutoCode();
   };
 
   const handleToggleFree = (checked: boolean) => {
@@ -227,6 +263,7 @@ export const ProcedimentoFormView: React.FC<ProcedimentoFormViewProps> = ({
                 <div className="relative">
                   <Tag className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
+                    ref={nameInputRef}
                     type="text"
                     required
                     value={name}

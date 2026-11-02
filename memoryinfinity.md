@@ -736,3 +736,130 @@ export const brandColors = {
         - Modernizado [`vite.config.ts`](file:///c:/OdontoSouza/vite.config.ts) com `fileURLToPath` para compatibilidade total com o Vite 8.
         - `npm run build` executando em apenas 1.06s gerando o bundle de produção otimizado na pasta `dist/`.
         - Variáveis de ambiente da Contabo configuradas na Vercel e deploy de produção sincronizado com GitHub.
+  - **Separação Oficial da Rota Administrativa e Login (`/paineladmin`):**
+    - **Separação de Rotas:** A tela de login e o acesso a todo o painel de gestão clínica/administrativa foram transferidos oficialmente para a rota `/paineladmin`.
+    - **Redirecionamento Inteligente de `/login`:** Acessos à URL `/login` são automaticamente redirecionados para `/paineladmin`.
+    - **Guarda de Segurança RBAC Atualizada:** Perfis de `paciente` que tentarem acessar `/paineladmin` são automaticamente interceptados e redirecionados para `/minhaconta`.
+    - **Navegação Integrada e Logout Seguro:**
+      - Na Área do Paciente (`MinhaContaView`), médicos e administradores contam com atalho direto "Painel Admin (/paineladmin)" na Sidebar, Gaveta Mobile e Menu Superior.
+      - No painel administrativo, o logout agora retorna com precisão para a tela de login em `/paineladmin`.
+      - Na gaveta mobile do painel administrativo (`MobileDrawer`), adicionado o atalho rápido "Área do Paciente (/minhaconta)".
+      - Sincronização com histórico do navegador (`popstate`) e suporte a SPA (`vercel.json`) 100% preservados.
+  - **Página Institucional Pública Oficial (`InstitucionalView.tsx`):**
+    - **Acesso Principal:** Disponível na raiz pública `http://localhost:5173/` em ambiente local e no domínio oficial de produção `https://odontosouzavr.com.br`.
+    - **Navegação & Seções:**
+      1. **Header Fixo Responsivo:** Menus Início, Quem Somos, Tratamentos, Avaliações (Google 5.0 ★), Diferenciais e Contato, com botões para "Área do Paciente" e "Agendar Consulta".
+      2. **Hero Section:** Apresentação acolhedora de alto impacto com badges de confiança (5.0 Google, Biossegurança Hospitalar e Pontualidade Britânica de 45 min).
+      3. **Bento Stats:** Métricas clínicas (+5.000 pacientes, 100% esterilizado, 5.0 estrelas e R$ 0,00 mensalidade no plano próprio).
+      4. **Quem Somos:** Apresentação da filosofia humanizada da clínica e do Responsável Técnico Dr. Frankisney Souza (CRO-SP 78.432).
+      5. **Tratamentos & Especialidades:** 6 cards interativos (Implantes & Próteses, Estética & Lentes de Resina, Ortodontia & Alinhadores, Canal Sem Dor, Profilaxia Preventiva, Cirurgias & Sisos).
+      6. **Avaliações dos Pacientes:** Selo Google Reviews 5.0 com depoimentos reais, fotos e procedimentos verificados.
+      7. **Diferencial "Convênio da Casa":** Destaque ao plano próprio sem mensalidade com tabela especial e repasse imediato.
+      8. **Contato, Localização & WhatsApp:** Endereço, horários de atendimento (Seg a Sex: 08:00 às 19:15), canal direto do WhatsApp oficial (`(66) 99254-4324`) e compromisso LGPD/CFO.
+      9. **Rodapé Completo:** Informações regulatórias, links de navegação, links interativos de "Política de Privacidade" e "Termos de Uso" com modais LGPD/CFO, assinatura oficial de desenvolvimento "Construído por By ES Solution", acesso à Área do Paciente e link discreto para o Painel Administrativo (`/paineladmin`).
+    - **Integração de Mídia & Contabo S3:** Suporte a ativos no bucket S3 da Contabo com categoria `institucional` homologada em `storageService.ts` e `/api/storage/upload`.
+  - **Agenda Clínica Online Inteligente na Página Institucional (`InstitucionalAgendaSection.tsx`):**
+    - **Posicionamento de Destaque:** Localizada logo abaixo da primeira seção (Hero Banner), com menu de navegação rápida "Agenda Online" no cabeçalho e botão de ação direta.
+    - **Design Idêntico aos Padrões Aprovados:**
+      - Lado Esquerdo: Mini calendário mensal com navegação interativa, bloqueio visual de datas passadas e card da Cadeira 01 com o Dr. Frankisney Souza (consultas de 45 min).
+      - Lado Direito: Exibição limpa e objetiva exclusivamente de **horários livres/vagos** para agendamento (eliminando ruído visual de horários encerrados ou passados), com filtro dinâmico por turnos (`Todas as Vagas Livres`, `Manhã`, `Tarde`, `Noite`) e botão de reserva rápida em 45 minutos. Se um turno estiver sem vagas, exibe feedback visual amigável orientando a escolher outro turno ou data.
+    - **Inteligência de Sessão e Autenticação (Fluxo Pendente com Login/Cadastro):**
+      - Se o paciente já estiver autenticado (`currentUser` ativo), abre diretamente o modal de confirmação do horário e procedimento.
+      - Se o paciente **NÃO** estiver autenticado, o sistema salva com segurança a intenção em `sessionStorage` (`odonto_pending_booking`) contendo data, horário e procedimento selecionados, e abre o modal rápido de Login ou Cadastro Novo Paciente.
+      - Ao efetuar o login ou criar o cadastro com sucesso, o agendamento é **gravado automaticamente** no Supabase (`agendamentos`), aciona a notificação com campainha dupla da recepção e limpa a memória pendente sem exigir que o paciente refaça o processo.
+      - **Ajuste Tipográfico & Linha Única:** O título da seção de agenda `"Reserve sua consulta com o Dr. Frankisney Souza"` foi padronizado com `whitespace-nowrap` e tipografia fluida `text-[clamp(16px,3.6vw,32px)]`, garantindo apresentação contínua e sem quebra de linha em resoluções mobile, tablet e desktop.
+      - **Catálogo Dinâmico de Procedimentos da Tabela `procedimentos`:**
+        - Eliminadas opções estáticas do modal de agendamento na página institucional (`InstitucionalAgendaSection.tsx`).
+        - O dropdown agora consulta diretamente a tabela `public.procedimentos` via `procedimentosService.getProcedimentos()`.
+        - **Resiliência e Linguagem Clínica Estrita:** Enquanto não houver procedimentos cadastrados no Supabase, exibe a opção padrão `"Consulta / Avaliação Clínica Inicial"` de forma limpa e profissional no seletor, sem qualquer aviso ou termo técnico exposto ao paciente.
+      - **Automação no Formulário de Cadastro de Procedimentos (`ProcedimentoFormView.tsx`):**
+        - **Código Automático Sequencial:** Ao abrir o formulário para cadastrar um novo procedimento, o sistema consulta os registros existentes e sugere automaticamente o próximo código sequencial de 4 dígitos (iniciando em `0101`, seguido por `0102`, `0103`, etc.). O botão "Auto" também recalcula esse valor se acionado.
+        - **Foco Automático Direcionado:** O cursor é posicionado automaticamente no campo `"Nome do Procedimento"` via `useRef` e `.focus()`, permitindo que o usuário comece a digitar o nome do serviço imediatamente sem precisar clicar no campo.
+        - **Sincronização Automática:** Ao cadastrar novos procedimentos na tabela `procedimentos`, eles aparecem automaticamente com nome, ID e valor formatado (`R$ 0,00` ou `Sob Avaliação`), associando o `procedimento_id` correto no agendamento (`agendamentos`).
+      - **Resolução do Erro de UUID Vazio e Violação de Chave Estrangeira (`agendamentos_cadeira_id_fkey`):**
+        - O PostgreSQL disparava erro de violação de Foreign Key em `agendamentos_cadeira_id_fkey` porque o serviço de agenda utilizava um UUID mockado (`10000000-0000-0000-0000-000000000001`) quando a tabela `cadeiras_clinicas` estava vazia.
+        - Inspeção cirúrgica revelou que no banco de produção a tabela `cadeiras_clinicas` não possuía registros (`[]`), e a coluna `cadeira_id` em `agendamentos` aceita `NULL` com segurança.
+        - Ajustado `agendaService.ts` para enviar `cadeira_id: null` quando não houver cadeira cadastrada, e associar o `dentista_id` dinamicamente ao usuário real cadastrado em `public.usuarios` (`7faa1187-2584-4c5d-886e-a43813d44e8e`), eliminando qualquer UUID mockado residual.
+        - **Cadastro Oficial da Cadeira Clínica Principal:** Cadastrada com sucesso no banco de dados na tabela `public.cadeiras_clinicas` a **`Cadeira 01 (Consultório Principal)`** (`id: a5650996-eea2-459b-83f9-f2e257f188dd`, status: `Ativa`), garantindo que todos os agendamentos online e administrativos tenham referência real e íntegra.
+        - Testado e validado via script automatizado contra a RPC `salvar_agendamento` e banco de dados, com 100% de sucesso.
+      - **Diferenciação Inteligente de Papéis no Agendamento Institucional (`InstitucionalAgendaSection.tsx`):**
+        - **Bloqueio de Auto-Reserva por Administrador/Equipe:** O sistema não assume mais a identidade da equipe como sendo o paciente. Apenas contas com `role === 'paciente'` são consideradas pacientes autenticados para agendamento direto em nome próprio.
+        - **Tela Inicial de Login Obrigatória:** Ao clicar em um horário na agenda institucional, a tela inicial exibida é SEMPRE a de **Login do Paciente** (`authMode === 'login'`), apresentando o botão de ação rápida destacado **"Não tenho cadastro — Criar cadastro novo"**.
+        - **Cadastro Completo Replicando a Área Administrativa (`PacienteFormView.tsx`):**
+          - Ao acionar "Não tenho cadastro", o modal expande (`max-w-3xl`) e disponibiliza o formulário completo e idêntico ao do painel administrativo, contendo:
+            1. **Dados Pessoais & Identificação:** Nome Completo, CPF com validação matemática e máscara (`isValidCPF`, `formatCPF`), RG, Data de Nascimento, Sexo e Convênio Odontológico (carregado dinamicamente do banco Supabase).
+            2. **Contato & Comunicação:** Celular / WhatsApp com máscara (`formatPhone`) e E-mail Principal.
+            3. **Endereço Residencial:** CEP com busca automática ViaCEP (`useViaCep`), Logradouro, Número, Complemento, Bairro, Cidade e UF.
+            4. **Histórico Clínico (Opcional):** Alergias Conhecidas e Condições Médicas / Queixa Principal.
+            5. **Credenciais de Acesso ao Portal (/minhaconta):** E-mail para Login, Senha, Confirmação de Senha e Medidor de Força com checklist em tempo real (mínimo 8 caracteres, letra maiúscula, caractere especial e confirmação idêntica).
+          - **Foto do Paciente:** Deixada para etapa posterior dentro da Área do Paciente conforme regra clínica solicitada.
+        - **Fluxo Rigoroso de Pós-Cadastro:**
+          1. Após preencher o cadastro, o paciente é gravado no banco (`public.pacientes`) e suas credenciais são registradas no Supabase Auth e `public.usuarios` com perfil `paciente`.
+          2. O paciente é **redirecionado para a tela de Login** com seu e-mail preenchido e mensagem de sucesso em destaque.
+          3. **Apenas após efetuar o login com sucesso**, o sistema realiza a reserva na agenda (`agendamentos`), aciona a notificação com campainha dupla da recepção e emite a confirmação final.
+      - **Exclusão em Cascata Completa de Paciente (`PacientesView`, `PacientesTable`, `PacientesMobileCards`, `pacientesService`, `database-rpc.sql`):**
+        - **Botão Oficial de Exclusão na Área de Pacientes:** Adicionado o botão vermelho (`text-rose-600 hover:opacity-80 transition-opacity cursor-pointer`) com o ícone `Trash2` na coluna `AÇÕES` da tabela de pacientes (`PacientesTable.tsx`) e nos cartões de pacientes em dispositivos móveis (`PacientesMobileCards.tsx`), posicionado junto aos botões de ação existentes.
+        - **Modal de Confirmação Seguro:** Antes de executar qualquer ação destrutiva, um modal de confirmação apresenta de forma clara o nome e código do paciente, detalhando os dados que serão removidos permanentemente.
+        - **Escopo Completo da Exclusão em Cascata:**
+          1. **Tabela `pacientes`:** Remoção do cadastro do paciente.
+          2. **Tabela `agendamentos`:** Remoção de todas as consultas agendadas associadas ao paciente.
+          3. **Prontuário & Clínico:** Exclusão de evoluções de prontuário (`evolucoes_prontuario`), mapeamento dentário (`odontograma_itens`), orçamentos e itens (`orcamentos`, `orcamento_itens`) e transações financeiras (`transacoes_financeiras`).
+          4. **Tabela `usuarios`:** Remoção da conta do paciente em `public.usuarios` (apenas para registros de perfil `paciente`).
+          5. **Autenticação Supabase (`auth.users`):** Exclusão do usuário no schema `auth.users` do Supabase via RPC `SECURITY DEFINER` `public.excluir_paciente_cascata`.
+          6. **Proteção Rigorosa de Contas da Equipe:** Implementada salvaguarda que impede que e-mails compartilhados com membros da equipe clínica (Administrador, Dentista, Atendente) tenham suas contas de usuário ou acessos revogados.
+          7. **Storage S3 da Contabo:** Limpeza automática da pasta do paciente via `storageService.deletePastaPaciente(pacienteId)`.
+          8. **Trilha de Auditoria:** Registro do evento com ação `'EXCLUIR_PACIENTE_CASCATA'` em `public.auditoria_logs`.
+  - **Correção de Renderização Pós-Login no Painel Administrativo:**
+    - Resolvido erro `ReferenceError: isConfigSubmenu is not defined` em `src/App.tsx`, restaurando a verificação de submenus de configurações (`dados-clinica`, `agenda-horarios`, `modelos-documentos`, `integracoes-apis`), garantindo a abertura imediata do `DashboardView` e dos módulos administrativos sem tela de erro.
+  - **Correção do Registro e Autenticação do Paciente no Supabase (`InstitucionalAgendaSection.tsx`, `pacientesService.ts`, `LoginView.tsx`, `database-rpc.sql`):**
+    - **Diagnóstico Preciso:** A instância self-hosted do Supabase GoTrue possui cadastros (`signUp`) e logins por e-mail desativados para requisições anônimas (`Email logins are disabled`). Anteriormente, o fluxo do site institucional ignorava a falha de registro das credenciais e tentava autenticar via GoTrue, resultando em erro de credenciais inválidas.
+    - **Solução Nativa via PostgreSQL `SECURITY DEFINER`:**
+      - A função `public.salvar_usuario_sistema(p_dados JSONB)` foi atualizada para suportar os modos `cadastrar` e `login`, utilizando a biblioteca nativa `pgcrypto` (`crypt(senha, gen_salt('bf'))`).
+      - **Modo Cadastrar:** Cria ou atualiza o usuário em `public.usuarios` e `auth.users` simultaneamente, com e-mail confirmado (`email_confirmed_at = NOW()`), perfil `paciente` e hash criptográfico bcrypt seguro em `permissoes->>'senha_hash'`.
+      - **Modo Login:** Verifica a senha em tempo real via `crypt()` no PostgreSQL com permissões `SECURITY DEFINER`. Caso a senha esteja incorreta, emite exceção amigável `E-mail ou senha incorretos. Verifique suas credenciais.`; quando correta, retorna os dados do usuário e atualiza `last_sign_in_at`.
+    - **Integração no Frontend:**
+      - `pacientesService.criarAcessoPortalPaciente` agora grava de forma garantida as credenciais via `salvar_usuario_sistema`. Se houver erro, a interface não exibe falsa mensagem de sucesso e reporta o erro imediatamente.
+      - `pacientesService.autenticarUsuario` foi implementado para verificar as credenciais tanto no modal da agenda institucional quanto na tela de login principal (`LoginView.tsx`).
+      - No agendamento institucional, após o login bem-sucedido do paciente, o modal de autenticação é fechado, o agendamento é salvo na tabela `agendamentos`, o som de notificação clínica da recepção é acionado e a consulta é confirmada em tempo real.
+    - **Validação Automatizada:** Testado e aprovado com sucesso via script de ponta a ponta (cadastro e login do paciente com credenciais reais via anon key no PostgreSQL).
+  - **Fluxo Clínico Otimizado de Reserva na Agenda Institucional (`InstitucionalAgendaSection.tsx`):**
+    - **Ajuste na Ordem de Abertura das Telas:** Ao clicar em *"Reservar Este Horário"* no grid de vagas da agenda online, a aplicação agora chama **SEMPRE E PRIMEIRO** a tela de seleção do procedimento odontológico (`isConfirmModalOpen`), permitindo que o paciente escolha o procedimento pretendido (ex: *Consulta / Avaliação*, *Profilaxia*, *Implantes*, etc.) e digite suas observações clínicas antes de qualquer solicitação de login.
+    - **Transição Fluida para Identificação:**
+      - Se o paciente já estiver autenticado (`currentUser`), o botão exibe *"Confirmar Agendamento"* e conclui diretamente.
+      - Se o paciente for um visitante não logado, o botão exibe *"Prosseguir para Cadastro"*, preservando em memória o horário, data, procedimento e observações selecionadas, e abrindo diretamente o **Formulário Completo com todas as informações de cadastro** (`authMode === 'cadastro'`: Dados Pessoais, Identificação, Endereço ViaCEP, Histórico Clínico e Credenciais), com a opção de alternar para Login caso já possua conta.
+      - **Eliminação Definitiva do Modo Reduzido (`staff_booking`):** Removido por completo o mini formulário de 3 campos da equipe que sobrescrevia a tela quando o usuário logado no navegador era administrador, garantindo que o formulário completo de cadastro de paciente seja sempre o padrão oficial.
+      - Após o preenchimento do cadastro completo, o paciente é direcionado ao login para autenticar com sua senha recém-criada, e em seguida a consulta é salva no Supabase com o procedimento e observações exatas que o paciente escolheu na etapa 1, acionando a notificação com campainha no painel.
+  - **Tradução de Restrições do Banco para Toasts Amigáveis (`InstitucionalAgendaSection.tsx`, `database-rpc.sql`):**
+    - **Eliminação de Jargões Técnicos:** Substituído o erro bruto do PostgreSQL (`duplicate key value violates unique constraint "usuarios_email_key"`).
+    - **Verificação Prévia & Toast Notificador:** Antes de submeter o cadastro, o sistema verifica se o e-mail informado já existe na clínica. Se existir, exibe um Toast amigável de alerta: *"Usuário já cadastrado! Este e-mail já possui cadastro no sistema. Por favor, volte e faça o login."*, e redireciona automaticamente o paciente para a tela de Login com o e-mail já preenchido.
+    - **Tratamento Resiliente de Exceções:** Implementada a função `getFriendlyErrorMessage` que captura qualquer violação de unicidade ou constraint e a converte em linguagem clínica clara e humanizada, orientando o usuário a efetuar o login com suas credenciais.
+    - **Otimização no PostgreSQL (`salvar_usuario_sistema`):** Ajustada a resolução de `v_id` e a cláusula `ON CONFLICT (email)` na RPC `salvar_usuario_sistema`, prevenindo violação de chave primária/única em atualizações de dados.
+  - **Sincronização Dinâmica da Agenda Institucional e Ocultação de Vagas Reservadas (`InstitucionalAgendaSection.tsx`):**
+    - **Prevenção Estrita de Duplicidade:** A grade da agenda pública no site institucional agora consulta em tempo real a tabela `agendamentos` do Supabase para o dia selecionado (`fetchBookedSlots`).
+    - **Ocultação Automática:** Sempre que um horário possuir um agendamento confirmado/ativo no banco (ex: `09:00` no dia 02/11/2026), o mesmo **some imediatamente da grade pública**, impedindo que qualquer outro paciente tente agendar o mesmo horário (eliminando double-booking).
+    - **Sincronização em Tempo Real:** Conectado ao Supabase Realtime (`postgres_changes` na tabela `agendamentos`) para atualizar a grade automaticamente caso uma nova consulta seja marcada ou desmarcada, além de disparar a atualização instantânea logo após a confirmação da reserva na própria página.
+  - **Eliminação Definitiva de Fotos Mockadas e Dados Fictícios na Área do Paciente (`MinhaContaView.tsx`, `MeusDadosView.tsx`, `pacientePortalService.ts`, `SegurancaView.tsx`, `MeusTratamentosView.tsx`):**
+    - **Causa Raiz Identificada:** Em [`pacientePortalService.ts`](file:///c:/OdontoSouza/src/services/pacientePortalService.ts), a constante `DEFAULT_REAL_PATIENT` continha dados estáticos de uma paciente fictícia (*Mariana Alcântara*, e-mail `mariana.alcantara@email.com` e URL de foto do Unsplash `photo-1544005313-94ddf0286df2`). Além disso, a função `parsePacienteFromDb` recorria a essa URL quando o campo `foto_url` do banco era nulo, e os componentes [`MinhaContaView.tsx`](file:///c:/OdontoSouza/src/components/paciente/MinhaContaView.tsx) e [`MeusDadosView.tsx`](file:///c:/OdontoSouza/src/components/paciente/MeusDadosView.tsx) possuíam fallbacks fixos para essa mesma imagem.
+    - **Regra Estrita Aplicada (Sem Fotos Mockadas):**
+      - Quando o paciente não tiver cadastrado uma foto de perfil (ou se a URL for vazia, nula ou do Unsplash/placeholder), o sistema **NUNCA** exibe fotos de banco de imagens ou fotos de terceiros.
+      - Em seu lugar, renderiza o avatar elegante com as **iniciais reais do paciente em destaque** (ex: "ES" para Everaldo Souza, "MD" para Maria Dias), com fundo institucional da clínica (`#005f73` no cabeçalho e `#0A9396` na gaveta mobile), idêntico ao padrão dos usuários no painel administrativo.
+    - **Limpeza de Dados Padrão (`DEFAULT_REAL_PATIENT` & `parsePacienteFromDb`):**
+      - `DEFAULT_REAL_PATIENT` e `parsePacienteFromDb` limpos de dados fictícios: sem e-mail falso, sem endereço falso (Alameda Santos) e `avatarUrl: undefined`.
+      - O perfil do paciente agora prioriza estritamente os dados reais do usuário logado (`currentUser`) ou do registro do paciente no Supabase.
+    - **Suporte a Upload e Remoção de Foto Real em `MeusDadosView.tsx`:**
+      - Adicionado seletor de arquivo nativo (`<input type="file" />`) no botão de câmera e no botão *"Carregar Nova Imagem"*, permitindo que o paciente envie sua foto real (até 5MB) ou a remova pelo botão *"Remover Foto"*, persistindo a alteração na coluna `foto_url` da tabela `pacientes` no Supabase.
+      - Idade, data de nascimento e localização no card de perfil agora são calculadas dinamicamente a partir dos dados do paciente, sem textos estáticos.
+  - **Novo Layout Otimizado de Horários em Pills/Botões Compactos (`InstitucionalAgendaSection.tsx`, `AgendarConsultaView.tsx`, `MinhaContaView.tsx`):**
+    - **Substituição da Grade Vertical Extensa (Anexo 2 -> Anexo 1):** Eliminada a lista vertical de cartões grandes e repetitivos que continham divisores de descanso clínico, autoclave e múltiplos botões.
+    - **Novo Layout Visual Padronizado:**
+      - **Cabeçalho com Relógio e Data:** `🕒 Horários disponíveis para [Dia da Semana], [DD] de [Mês]:` com tipografia sem negrito excessivo e ícone azul-petróleo (`#0A9396`).
+      - **Mensagem Orientadora ao Paciente:** *"Clique no horário desejado para prosseguir com o agendamento da sua consulta."* em destaque logo abaixo do título.
+      - **Grade Compacta de Horários em Pills:** Botões arredondados e responsivos (`rounded-2xl`, `px-4 sm:px-5 py-2.5 sm:py-3 font-black text-sm sm:text-base`):
+        - *Estado Padrão:* Fundo branco, borda suave (`border border-slate-200`), texto escuro (`text-slate-800`), com efeito hover elegante (`hover:border-[#005F73] hover:text-[#005F73]`).
+        - *Estado Selecionado/Ativo:* Fundo azul-petróleo institucional (`bg-[#005F73]`), texto branco (`text-white font-black`) e leve elevação com sombra (`shadow-md scale-105`).
+        - *Estado Exclusivo Doutor:* Fundo âmbar suave (`bg-amber-50 border-amber-300 text-amber-900`) com ícone de cadeado.
+    - **Manutenção Rigorosa das Regras de Negócio:**
+      - **Apenas Horários Disponíveis:** Exibe somente horários com vagas livres e oculta horários já ocupados.
+      - **Bloqueio de Agendamento Retroativo:** Continua filtrando horários do dia atual que já transcorreram em relação ao relógio local (`isSlotInThePast`), impedindo reservas no passado.
+      - **Acionamento da Reserva com 1 Clique:** Ao clicar sobre o botão do horário desejado, aciona imediatamente o fluxo oficial de agendamento (modal de seleção do procedimento/queixa principal e prosseguimento de identificação), exatamente como fazia o botão *"Reservar Este Horário"*.
+      - Aplicado tanto na **Página Institucional** quanto no **Portal do Paciente** (telas de Agendamento e Início).

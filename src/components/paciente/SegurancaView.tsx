@@ -337,7 +337,7 @@ export const SegurancaView: React.FC<SegurancaViewProps> = ({
                 Área do Paciente • Prontuário {patientData?.code || '#OS-2026'}
               </span>
               <span className="text-xs font-semibold text-slate-500">
-                {patientData?.fullName || currentEmail || 'Paciente Odonto Souza'}
+                {patientData?.fullName || currentEmail || 'Paciente'}
               </span>
             </div>
 

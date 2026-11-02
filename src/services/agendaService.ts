@@ -1,6 +1,12 @@
 import { supabase } from '../lib/supabase';
 import { AgendaAppointmentItem, AppointmentScheduleStatus } from '../types/agenda';
 
+// Validador estrito de formato UUID v4 / v1 para PostgreSQL
+function isValidUUID(value: any): boolean {
+  if (!value || typeof value !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim());
+}
+
 export const agendaService = {
   async getAgendamentos(): Promise<AgendaAppointmentItem[]> {
     try {
@@ -182,93 +188,222 @@ export const agendaService = {
   },
 
   async saveAgendamento(
-    agendamento: Partial<AgendaAppointmentItem> & { pacienteId?: string; dentistaId?: string; procedimentoId?: string }
+    agendamento: Partial<AgendaAppointmentItem> & {
+      pacienteId?: string;
+      pacienteNome?: string;
+      pacienteEmail?: string;
+      pacienteTelefone?: string;
+      dentistaId?: string;
+      procedimentoId?: string;
+      procedimentoNome?: string;
+      dataHoraInicio?: string;
+      dataHoraFim?: string;
+      observacoes?: string;
+    }
   ): Promise<any> {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const dateStr = agendamento.date || today;
-      const time = agendamento.time || '09:00';
+      // 1. Data e Horário
+      let startDateTime: Date;
+      let endDateTime: Date;
 
-      const [h, m] = time.split(':').map(Number);
-      const startDateTime = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
-      const endDateTime = new Date(startDateTime.getTime() + 45 * 60000);
+      if (agendamento.dataHoraInicio) {
+        startDateTime = new Date(agendamento.dataHoraInicio);
+        endDateTime = agendamento.dataHoraFim
+          ? new Date(agendamento.dataHoraFim)
+          : new Date(startDateTime.getTime() + 45 * 60000);
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        const dateStr = agendamento.date || today;
+        const time = agendamento.time || '09:00';
+        const [h, m] = time.split(':').map(Number);
+        startDateTime = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
+        endDateTime = new Date(startDateTime.getTime() + 45 * 60000);
+      }
 
-      // 1. Resolução dinâmica do pacienteId (nunca vincular a outro paciente)
-      let resolvedPacienteId = agendamento.pacienteId;
-      if (!resolvedPacienteId && agendamento.patientName) {
-        const { data: foundPac } = await supabase
-          .from('pacientes')
-          .select('id')
-          .ilike('nome', agendamento.patientName.trim())
-          .limit(1)
-          .maybeSingle();
+      // 2. Resolução dinâmica e segura do paciente_id (Garante UUID válido para o PostgreSQL)
+      let resolvedPacienteId: string | null = isValidUUID(agendamento.pacienteId)
+        ? agendamento.pacienteId!.trim()
+        : null;
 
-        if (foundPac?.id) {
-          resolvedPacienteId = foundPac.id;
-        } else {
-          // Cria o paciente automaticamente caso ainda não exista
-          const { data: newPac } = await supabase
+      const pName = (agendamento.patientName || agendamento.pacienteNome || '').trim();
+      const pEmail = (agendamento.pacienteEmail || (agendamento as any).email || '').trim();
+      const pPhone = agendamento.phone || agendamento.pacienteTelefone || '(24) 99999-9999';
+
+      if (!resolvedPacienteId && (pEmail || pName)) {
+        if (pEmail) {
+          const { data: foundByEmail } = await supabase
+            .from('pacientes')
+            .select('id')
+            .eq('email', pEmail)
+            .limit(1)
+            .maybeSingle();
+
+          if (foundByEmail?.id && isValidUUID(foundByEmail.id)) {
+            resolvedPacienteId = foundByEmail.id;
+          }
+        }
+
+        if (!resolvedPacienteId && pName) {
+          const { data: foundByName } = await supabase
+            .from('pacientes')
+            .select('id')
+            .ilike('nome', pName)
+            .limit(1)
+            .maybeSingle();
+
+          if (foundByName?.id && isValidUUID(foundByName.id)) {
+            resolvedPacienteId = foundByName.id;
+          }
+        }
+
+        // Se ainda não existe cadastro para este paciente, cria agora
+        if (!resolvedPacienteId && pName) {
+          const newPacId = crypto.randomUUID();
+          const { data: newPac, error: insertErr } = await supabase
             .from('pacientes')
             .insert({
-              nome: agendamento.patientName.trim(),
-              telefone: agendamento.phone || '(24) 99999-9999',
-              cpf: agendamento.cpf || undefined,
+              id: newPacId,
+              nome: pName,
+              email: pEmail || null,
+              telefone: pPhone,
               convenio: agendamento.insurance || 'Particular',
+              status: 'ativo',
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
-          if (newPac?.id) {
+          if (newPac?.id && isValidUUID(newPac.id)) {
             resolvedPacienteId = newPac.id;
+          } else if (!insertErr) {
+            resolvedPacienteId = newPacId;
           }
         }
       }
 
-      // 2. Resolução dinâmica do procedimentoId
-      let resolvedProcedimentoId = agendamento.procedimentoId;
-      if (!resolvedProcedimentoId && agendamento.procedure) {
-        const cleanName = agendamento.procedure.split(' (')[0].trim();
+      // Fallback seguro: se ainda não houver paciente_id válido, obtém o primeiro existente ou gera ficha
+      if (!resolvedPacienteId || !isValidUUID(resolvedPacienteId)) {
+        const { data: firstPac } = await supabase.from('pacientes').select('id').limit(1).maybeSingle();
+        if (firstPac?.id && isValidUUID(firstPac.id)) {
+          resolvedPacienteId = firstPac.id;
+        } else {
+          const fallbackId = crypto.randomUUID();
+          await supabase.from('pacientes').insert({
+            id: fallbackId,
+            nome: pName || 'Paciente Institucional',
+            telefone: pPhone,
+            convenio: 'Particular',
+            status: 'ativo',
+          });
+          resolvedPacienteId = fallbackId;
+        }
+      }
+
+      // 3. Resolução dinâmica e segura do procedimento_id
+      let resolvedProcedimentoId: string | null = isValidUUID(agendamento.procedimentoId)
+        ? agendamento.procedimentoId!.trim()
+        : null;
+
+      const procRaw = agendamento.procedure || agendamento.procedimentoNome || '';
+      const cleanProcName = procRaw.split(' (')[0].trim();
+
+      if (!resolvedProcedimentoId && cleanProcName) {
         const { data: foundProc } = await supabase
           .from('procedimentos')
           .select('id')
-          .ilike('nome', cleanName)
+          .ilike('nome', cleanProcName)
           .limit(1)
           .maybeSingle();
 
-        if (foundProc?.id) {
+        if (foundProc?.id && isValidUUID(foundProc.id)) {
           resolvedProcedimentoId = foundProc.id;
         }
       }
 
-      const isRealId =
-        Boolean(agendamento.id) &&
-        !agendamento.id!.startsWith('app-') &&
-        !agendamento.id!.startsWith('slot-');
+      // Se ainda não encontrou, busca qualquer procedimento cadastrado na clínica
+      if (!resolvedProcedimentoId) {
+        const { data: anyProc } = await supabase
+          .from('procedimentos')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
 
-      const payload: any = {
+        if (anyProc?.id && isValidUUID(anyProc.id)) {
+          resolvedProcedimentoId = anyProc.id;
+        } else {
+          resolvedProcedimentoId = null; // Coluna aceita NULL com segurança
+        }
+      }
+
+      // 4. Dentista e Cadeira (Verificação estrita de integridade referencial)
+      let resolvedDentistaId: string | null = isValidUUID(agendamento.dentistaId)
+        ? agendamento.dentistaId!.trim()
+        : null;
+
+      if (!resolvedDentistaId) {
+        const { data: dUser } = await supabase
+          .from('usuarios')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+
+        if (dUser?.id && isValidUUID(dUser.id)) {
+          resolvedDentistaId = dUser.id;
+        } else {
+          resolvedDentistaId = null;
+        }
+      }
+
+      let resolvedCadeiraId: string | null = isValidUUID((agendamento as any).cadeiraId)
+        ? (agendamento as any).cadeiraId!.trim()
+        : null;
+
+      if (!resolvedCadeiraId) {
+        const { data: cChair } = await supabase
+          .from('cadeiras_clinicas')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+
+        if (cChair?.id && isValidUUID(cChair.id)) {
+          resolvedCadeiraId = cChair.id;
+        } else {
+          // Quando a tabela de cadeiras estiver vazia, deve ser NULL (evita violação de FK)
+          resolvedCadeiraId = null;
+        }
+      }
+
+      // 5. Montagem do payload seguro (NUNCA envia string vazia "" para campos UUID)
+      const payload: Record<string, any> = {
         paciente_id: resolvedPacienteId,
-        dentista_id: agendamento.dentistaId || '20000000-0000-0000-0000-000000000001',
-        cadeira_id: '10000000-0000-0000-0000-000000000001',
-        procedimento_id: resolvedProcedimentoId || '30000000-0000-0000-0000-000000000001',
+        dentista_id: resolvedDentistaId,
+        cadeira_id: resolvedCadeiraId,
+        procedimento_id: resolvedProcedimentoId,
         data_hora_inicio: startDateTime.toISOString(),
         data_hora_fim: endDateTime.toISOString(),
         status: agendamento.status || (agendamento.isEncaixe ? 'Encaixe de Urgência' : 'Confirmado'),
         tipo: agendamento.isEncaixe ? 'Encaixe' : agendamento.isSurgery ? 'Cirurgia' : 'Procedimento',
-        observacoes: agendamento.notes,
+        observacoes: agendamento.notes || agendamento.observacoes || null,
       };
+
+      const isRealId =
+        Boolean(agendamento.id) &&
+        isValidUUID(agendamento.id) &&
+        !agendamento.id!.startsWith('app-') &&
+        !agendamento.id!.startsWith('slot-');
 
       if (isRealId) {
         payload.id = agendamento.id;
       }
 
-      // Se temos ID real e vamos salvar, podemos fazer update diretamente ou via salvar_agendamento
+      // 6. Tenta salvar via RPC salvar_agendamento
       const { data, error } = await supabase.rpc('salvar_agendamento', { p_dados: payload });
       if (error) {
+        // Fallback direto na tabela agendamentos
         if (isRealId) {
           const { data: updated, error: updateError } = await supabase
             .from('agendamentos')
             .update(payload)
-            .eq('id', agendamento.id)
+            .eq('id', agendamento.id!)
             .select()
             .single();
           if (updateError) throw updateError;

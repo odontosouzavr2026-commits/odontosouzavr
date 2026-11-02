@@ -836,295 +836,116 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
             </div>
           </div>
 
-          {/* SUB-HEADER DA GRADE COM ABAS DE FILTRO */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-slate-800">Grade de Atendimento</h2>
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                {filteredSlots.length} de {slots.length} horários
-              </span>
+          {/* Grade Compacta de Horários Disponíveis (Novo Modelo Anexo 1) */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/90 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[#0A9396] shrink-0" />
+                  <h2 className="font-extrabold text-base sm:text-lg text-slate-900 capitalize">
+                    Horários disponíveis para {getDayOfWeekName(selectedDay)}, {String(selectedDay).padStart(2, '0')} de Novembro:
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 font-medium pl-7">
+                  Clique no horário desejado para prosseguir com o agendamento da sua consulta.
+                </p>
+              </div>
+
+              {/* Filtros em Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('todos')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    shiftFilter === 'todos' || shiftFilter === 'livres'
+                      ? 'bg-[#005f73] text-white shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  Todos ({freeSlotsCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('manha')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    shiftFilter === 'manha'
+                      ? 'bg-[#005f73] text-white shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  Manhã ({slots.filter((s) => s.shift === 'manha' && s.status === 'livre' && !isSlotInThePast(s.time, selectedDay)).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('tarde')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    shiftFilter === 'tarde'
+                      ? 'bg-[#005f73] text-white shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  Tarde ({slots.filter((s) => s.shift === 'tarde' && s.status === 'livre' && !isSlotInThePast(s.time, selectedDay)).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('noite')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    shiftFilter === 'noite'
+                      ? 'bg-[#005f73] text-white shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
+                >
+                  Noite ({slots.filter((s) => s.shift === 'noite' && s.status === 'livre' && !isSlotInThePast(s.time, selectedDay)).length})
+                </button>
+              </div>
             </div>
 
-            {/* Filtros em Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setShiftFilter('todos')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  shiftFilter === 'todos'
-                    ? 'bg-[#005f73] text-white shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
-              >
-                Todos ({slots.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setShiftFilter('manha')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  shiftFilter === 'manha'
-                    ? 'bg-[#005f73] text-white shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
-              >
-                Manhã ({slots.filter((s) => s.shift === 'manha').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setShiftFilter('tarde')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  shiftFilter === 'tarde'
-                    ? 'bg-[#005f73] text-white shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
-              >
-                Tarde ({slots.filter((s) => s.shift === 'tarde').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setShiftFilter('noite')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  shiftFilter === 'noite'
-                    ? 'bg-[#005f73] text-white shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
-              >
-                Noite ({slots.filter((s) => s.shift === 'noite').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setShiftFilter('livres')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  shiftFilter === 'livres'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300'
-                }`}
-              >
-                Livres ({freeSlotsCount})
-              </button>
-            </div>
-          </div>
+            {/* Grid / Wrap de Botões de Horário (Pills - Anexo 1) */}
+            {filteredSlots.filter((s) => s.status === 'livre' && !isSlotInThePast(s.time, selectedDay)).length === 0 ? (
+              <div className="p-8 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs font-semibold text-center space-y-1">
+                <p className="font-bold text-sm">Sem horários livres para este dia/turno</p>
+                <p className="text-[11px] text-amber-800">
+                  Todos os horários desta data já foram preenchidos ou transcorreram pelo horário do computador. Por favor, escolha outro dia no calendário ao lado.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2.5 sm:gap-3.5 pt-1">
+                {filteredSlots
+                  .filter((s) => s.status === 'livre' && !isSlotInThePast(s.time, selectedDay))
+                  .map((slot) => {
+                    const isSelected = selectedSlotForBooking?.id === slot.id;
+                    const isDoctor = slot.isDoctorOnly || (slot.time >= '08:00' && slot.time < '09:00');
 
-          {/* LISTA DE CARDS DE HORÁRIO (TIMELINE SLOTS) */}
-          <div className="flex flex-col gap-3 w-full">
-            {filteredSlots.map((slot, index) => {
-              const isPast = isSlotInThePast(slot.time, selectedDay);
-              const isLivre = slot.status === 'livre';
-              const nextSlot = slots[slots.findIndex((s) => s.id === slot.id) + 1];
-
-              // Estilização dinâmica para horários passados
-              const cardBgColor = isPast && isLivre ? 'bg-slate-100/70 opacity-60' : slot.bgColor;
-              const cardBorderColor = isPast && isLivre ? 'border-slate-300' : slot.borderColor;
-
-              return (
-                <React.Fragment key={slot.id}>
-                  <div
-                    className={`rounded-2xl p-4 sm:p-5 shadow-xs transition-all duration-200 ${
-                      cardBgColor
-                    } border-2 ${cardBorderColor}`}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      {/* Bloco de Horário e Informações */}
-                      <div className="flex items-center gap-4 sm:gap-6 min-w-0">
-                        {/* Horário */}
-                        <div className="flex flex-col text-left pl-1 min-w-[78px] shrink-0">
-                          <span className={`text-base sm:text-lg font-black tracking-tight leading-none ${
-                            isPast && isLivre ? 'text-slate-400 line-through' : 'text-slate-900'
-                          }`}>
-                            {slot.time}
-                          </span>
-                          <span className="text-[11px] font-semibold text-slate-500 mt-1">
-                            {slot.time} - {slot.endTime}
-                          </span>
-                          <span className={`text-[10px] font-extrabold mt-0.5 ${
-                            isPast && isLivre ? 'text-slate-400' : 'text-[#005f73]'
-                          }`}>
-                            {slot.duration}
-                          </span>
-                        </div>
-
-                        <div className="h-10 w-[1px] bg-slate-200 hidden sm:block shrink-0" />
-
-                        {/* Status e Detalhes */}
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span
-                              className={`text-sm sm:text-base font-bold ${
-                                isPast && isLivre
-                                  ? 'text-slate-500'
-                                  : isLivre
-                                  ? 'text-emerald-700'
-                                  : 'text-slate-900'
-                              }`}
-                            >
-                              {isPast && isLivre ? 'Horário Encerrado' : isLivre ? 'Livre' : 'Reservado'}
-                            </span>
-
-                            <span
-                              className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-2xs ${
-                                isPast && isLivre
-                                  ? 'bg-slate-200 text-slate-600 border border-slate-300'
-                                  : slot.badgeColor
-                              }`}
-                            >
-                              {isPast && isLivre ? 'Horário Passado' : slot.statusLabel}
-                            </span>
-                          </div>
-
-                          <p className="text-xs text-slate-600 mt-1 truncate">
-                            {isPast && isLivre
-                              ? 'Horário já transcorrido hoje • Indisponível para agendamento retroativo'
-                              : slot.detail}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Ações */}
-                      <div className="flex items-center justify-end gap-2.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                        {isLivre ? (
-                          isPast ? (
-                            <button
-                              type="button"
-                              disabled
-                              className="bg-slate-200 text-slate-500 text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 cursor-not-allowed opacity-80"
-                              title="Horário já passou da hora do computador. Agendamento retroativo bloqueado."
-                            >
-                              <Clock className="w-3.5 h-3.5 text-slate-400" />
-                              <span>Horário Encerrado</span>
-                            </button>
-                          ) : slot.isDoctorOnly || (slot.time >= '08:00' && slot.time < '09:00') ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toast.info(
-                                  'Horário Exclusivo do Dr. Frankisney',
-                                  'Os horários das 08:00 às 09:00 são reservados exclusivamente para o Dr. Frankisney Souza (Administração). Para agendar neste horário, contate a recepção da clínica.'
-                                );
-                              }}
-                              className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs sm:text-sm font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-                              title="Horário Sob Demanda (Dr. Frankisney / Administração)"
-                            >
-                              <Lock className="w-3.5 h-3.5 text-amber-700" />
-                              <span>Sob Demanda (Dr. Frankisney)</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenBooking(slot)}
-                              className="bg-[#005f73] hover:bg-[#004655] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-                            >
-                              <Plus className="w-4 h-4 stroke-[2.5]" />
-                              <span>Agendar Horário</span>
-                            </button>
-                          )
-                        ) : (
-                          <div className="flex items-center gap-1 bg-white/90 border border-slate-200 rounded-full px-2 py-1 shadow-2xs">
-                            {/* Visualizar (Azul) */}
-                            <button
-                              type="button"
-                              onClick={() => setViewSlot(slot)}
-                              className="p-1.5 text-blue-600 hover:opacity-80 transition-opacity rounded-full hover:bg-slate-100 cursor-pointer"
-                              title="Visualizar detalhes da disponibilidade"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-
-                            {/* Editar (Laranja) */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toast.info(
-                                  'Acesso Restrito',
-                                  'Horários reservados para outros pacientes são protegidos por sigilo (LGPD).'
-                                );
-                              }}
-                              className="p-1.5 text-amber-500 hover:opacity-80 transition-opacity rounded-full hover:bg-slate-100 cursor-pointer"
-                              title="Editar"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-
-                            {/* Excluir (Vermelho) */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toast.info(
-                                  'Horário Ocupado',
-                                  'Cancelamentos só podem ser realizados pelo próprio paciente ou pela recepção.'
-                                );
-                              }}
-                              className="p-1.5 text-rose-600 hover:opacity-80 transition-opacity rounded-full hover:bg-slate-100 cursor-pointer"
-                              title="Remover"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Divisor de 5 min de descanso e esterilização entre consultas */}
-                  {slot.restMinutes === 5 && nextSlot && (shiftFilter === 'todos' || shiftFilter === slot.shift) && (
-                    <div className="flex items-center justify-center my-0.5">
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/80 text-[11px] text-slate-600 font-semibold shadow-2xs">
-                        <Coffee className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>
-                          5 min de descanso clínico &amp; higienização da cadeira ({slot.endTime} às {nextSlot.time})
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Intervalo de Almoço & Autoclave Geral */}
-                  {slot.restMinutes === 85 && (shiftFilter === 'todos' || shiftFilter === 'manha') && (
-                    <div className="my-1.5 rounded-2xl p-4 sm:p-5 border-l-4 border-l-[#005f73] bg-gradient-to-r from-slate-100 via-teal-50/40 to-slate-100 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 shrink-0 text-left sm:text-center">
-                          <span className="text-base sm:text-lg font-black text-slate-800 block">12:05</span>
-                          <span className="text-xs font-bold text-slate-500 block">85 min</span>
-                        </div>
-                        <div className="h-10 w-px bg-slate-200 hidden sm:block" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-900">
-                              Intervalo de Almoço &amp; Biossegurança Geral
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#005f73]/10 text-[#005f73]">
-                              Autoclave Ativa
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Ciclo de autoclave, esterilização terminal dos consultórios e intervalo da equipe (12:05 às 13:30)
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-teal-800 bg-white px-3 py-1 rounded-lg border border-teal-200 self-start sm:self-auto shadow-2xs">
-                        Turno da Tarde inicia às 13:30
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Transição Turno Tarde -> Noite */}
-                  {slot.time === '17:40' && (shiftFilter === 'todos' || shiftFilter === 'tarde') && (
-                    <div className="flex items-center justify-center my-1.5">
-                      <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 font-bold shadow-2xs">
-                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Início do Turno Noturno &amp; Atendimento Estendido (18:30 às 00:00)</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Encerramento da Agenda à Meia-Noite (00:00) */}
-                  {slot.time === '23:30' && (shiftFilter === 'todos' || shiftFilter === 'noite') && (
-                    <div className="flex items-center justify-center my-1 text-xs text-slate-500 font-semibold gap-1.5">
-                      <Timer className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Encerramento do plantão clínico às 00:00 (Meia-noite)</span>
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => {
+                          if (isDoctor) {
+                            toast.info(
+                              'Horário Exclusivo do Dr. Frankisney',
+                              'Os horários das 08:00 às 09:00 são reservados exclusivamente para o Dr. Frankisney Souza (Administração). Para agendar neste horário, contate a recepção da clínica.'
+                            );
+                            return;
+                          }
+                          handleOpenBooking(slot);
+                        }}
+                        className={`min-w-[86px] sm:min-w-[96px] px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-200 shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-[#005f73] text-white shadow-md scale-105 border-transparent'
+                            : isDoctor
+                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                            : 'bg-white hover:bg-slate-50 hover:border-[#005f73] hover:text-[#005f73] text-slate-800 border border-slate-200 hover:shadow-xs active:scale-95'
+                        }`}
+                        title={isDoctor ? 'Horário exclusivo da Administração' : `Clique para agendar às ${slot.time}`}
+                      >
+                        {isDoctor && <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />}
+                        <span>{slot.time}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
       </div>

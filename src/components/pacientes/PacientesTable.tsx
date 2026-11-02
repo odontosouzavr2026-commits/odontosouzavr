@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Pencil,
   Wallet,
+  Trash2,
   Phone,
   Mail,
   ChevronLeft,
@@ -24,6 +25,7 @@ interface PacientesTableProps {
   onEdit: (paciente: PacienteItem) => void;
   onOpenProntuario: (paciente: PacienteItem) => void;
   onOpenFinanceiro: (paciente: PacienteItem) => void;
+  onDelete?: (paciente: PacienteItem) => void;
 }
 
 export const PacientesTable: React.FC<PacientesTableProps> = ({
@@ -37,6 +39,7 @@ export const PacientesTable: React.FC<PacientesTableProps> = ({
   onEdit,
   onOpenProntuario,
   onOpenFinanceiro,
+  onDelete,
 }) => {
   const getInsuranceBadgeClass = (insurance: string) => {
     const lower = (insurance || '').toLowerCase();
@@ -256,6 +259,17 @@ export const PacientesTable: React.FC<PacientesTableProps> = ({
                       >
                         <Wallet className="w-4 h-4" />
                       </button>
+
+                      {onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(item)}
+                          className="p-2 text-rose-600 hover:opacity-80 transition-opacity rounded-lg cursor-pointer"
+                          title="Excluir Paciente (Cascata)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

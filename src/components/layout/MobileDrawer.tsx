@@ -348,6 +348,34 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         {/* User Quick Actions & Logout Footer */}
         <div className="p-3 border-t border-white/10 shrink-0 space-y-1">
           <button
+            onClick={() => handleLinkClick('/')}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-cyan-100 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <Globe className="w-4 h-4 shrink-0 text-[#94D2BD]" />
+              <span>Site da Clínica</span>
+            </div>
+            <span className="text-[10px] text-cyan-200 bg-white/10 px-1.5 py-0.5 rounded font-medium">
+              odontosouzavr.com.br
+            </span>
+          </button>
+          <button
+            onClick={() => handleLinkClick('minhaconta')}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              activePath === 'minhaconta'
+                ? 'bg-white text-[#005F73] font-bold'
+                : 'text-cyan-100 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Globe className="w-4 h-4 shrink-0 text-[#89f3f6]" />
+              <span>Área do Paciente</span>
+            </div>
+            <span className="text-[10px] text-teal-800 bg-teal-100 px-1.5 py-0.5 rounded font-bold">
+              /minhaconta
+            </span>
+          </button>
+          <button
             onClick={() => handleLinkClick('dados-clinica')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               activePath === 'dados-clinica'

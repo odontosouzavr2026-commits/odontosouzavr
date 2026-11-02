@@ -17,6 +17,7 @@ import {
 import { ToothIcon } from '../common/ToothIcon';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
+import { pacientesService } from '../../services/pacientesService';
 
 // Configurações de Segurança contra Força Bruta
 const MAX_FAILED_ATTEMPTS = 3;
@@ -25,12 +26,14 @@ const LOCKOUT_DURATION_SECONDS = 60; // 60 segundos de bloqueio temporário na i
 interface LoginViewProps {
   onLoginSuccess: (user: { id?: string; email: string; role: string; name: string }) => void;
   onNavigateToPaciente?: () => void;
+  onNavigateToInstitucional?: () => void;
   isMobilePreview?: boolean;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
   onNavigateToPaciente,
+  onNavigateToInstitucional,
   isMobilePreview = false,
 }) => {
   const toast = useToast();
@@ -222,6 +225,40 @@ export const LoginView: React.FC<LoginViewProps> = ({
           email: cleanEmail,
           role: 'Administrador',
           name: 'Everaldo Souza',
+        };
+
+        if (rememberMe) {
+          localStorage.setItem('odonto_user', JSON.stringify(userData));
+        } else {
+          sessionStorage.setItem('odonto_user', JSON.stringify(userData));
+        }
+
+        setTimeout(() => {
+          onLoginSuccess(userData);
+        }, 500);
+        return;
+      }
+
+      // 3. Autenticação via base segura do sistema (PostgreSQL / Bcrypt) para pacientes e usuários
+      const systemAuth = await pacientesService.autenticarUsuario(cleanEmail, password);
+      if (systemAuth.success && systemAuth.user) {
+        setFailedAttempts(0);
+        setLockoutUntil(null);
+        sessionStorage.removeItem('odonto_login_failed_attempts');
+        sessionStorage.removeItem('odonto_login_lockout_until');
+
+        setIsLoading(false);
+        setAuthSuccess(true);
+        toast.success(
+          systemAuth.user.role === 'paciente' ? 'Login do Paciente realizado!' : 'Login realizado com sucesso!',
+          `Bem-vindo(a), ${systemAuth.user.name}.`
+        );
+
+        const userData = {
+          id: systemAuth.user.id,
+          email: cleanEmail,
+          role: systemAuth.user.role,
+          name: systemAuth.user.name,
         };
 
         if (rememberMe) {
@@ -542,23 +579,43 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </button>
             </form>
 
-            {/* Link para Área do Paciente (Sem expor credenciais) */}
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span>É um paciente da clínica?</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onNavigateToPaciente) {
-                    onNavigateToPaciente();
-                  } else if (typeof window !== 'undefined') {
-                    window.history.pushState({}, '', '/minhaconta');
-                    window.location.href = '/minhaconta';
-                  }
-                }}
-                className="text-[#005F73] font-bold hover:underline cursor-pointer"
-              >
-                Área do Paciente →
-              </button>
+            {/* Link para Área do Paciente e Site Institucional */}
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2.5 text-xs text-slate-500">
+              <div className="flex items-center justify-between">
+                <span>É um paciente da clínica?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigateToPaciente) {
+                      onNavigateToPaciente();
+                    } else if (typeof window !== 'undefined') {
+                      window.history.pushState({}, '', '/minhaconta');
+                      window.location.href = '/minhaconta';
+                    }
+                  }}
+                  className="text-[#005F73] font-bold hover:underline cursor-pointer"
+                >
+                  Área do Paciente →
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-slate-50">
+                <span>Quer conhecer nossos serviços?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigateToInstitucional) {
+                      onNavigateToInstitucional();
+                    } else if (typeof window !== 'undefined') {
+                      window.history.pushState({}, '', '/');
+                      window.location.href = '/';
+                    }
+                  }}
+                  className="text-[#0A9396] font-bold hover:underline cursor-pointer"
+                >
+                  ← Ver Site Institucional
+                </button>
+              </div>
             </div>
 
             {/* Mobile Footer Links */}

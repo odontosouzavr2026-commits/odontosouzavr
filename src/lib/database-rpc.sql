@@ -398,32 +398,165 @@ CREATE OR REPLACE FUNCTION public.salvar_usuario_sistema(p_dados JSONB)
 RETURNS public.usuarios
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
     v_user public.usuarios;
+    v_auth_user auth.users;
     v_id UUID;
+    v_email TEXT := LOWER(TRIM(COALESCE(p_dados->>'email', '')));
+    v_senha TEXT := p_dados->>'senha';
+    v_acao TEXT := LOWER(COALESCE(p_dados->>'acao', 'salvar'));
+    v_hash TEXT;
+    v_nome TEXT := TRIM(COALESCE(p_dados->>'nome', ''));
+    v_telefone TEXT := TRIM(COALESCE(p_dados->>'telefone', ''));
+    v_permissoes JSONB := COALESCE(p_dados->'permissoes', '{}'::jsonb);
 BEGIN
-    v_id := COALESCE((p_dados->>'id')::UUID, gen_random_uuid());
+    -- MODO 1: AUTENTICAÇÃO / LOGIN
+    IF v_acao = 'login' OR v_acao = 'autenticar' THEN
+        IF v_email = '' OR v_senha IS NULL OR v_senha = '' THEN
+            RAISE EXCEPTION 'E-mail e senha são obrigatórios.';
+        END IF;
 
+        -- Busca usuário em public.usuarios
+        SELECT * INTO v_user FROM public.usuarios WHERE LOWER(email) = v_email LIMIT 1;
+        
+        -- Busca em auth.users se existir
+        SELECT * INTO v_auth_user FROM auth.users WHERE LOWER(email) = v_email LIMIT 1;
+
+        IF v_user.id IS NULL AND v_auth_user.id IS NULL THEN
+            RAISE EXCEPTION 'E-mail ou senha incorretos. Verifique suas credenciais.';
+        END IF;
+
+        -- Extrai o hash de autenticação (de auth.users ou de usuarios.permissoes)
+        v_hash := COALESCE(v_auth_user.encrypted_password, v_user.permissoes->>'senha_hash');
+
+        IF v_hash IS NULL OR v_hash = '' THEN
+            RAISE EXCEPTION 'E-mail ou senha incorretos. Verifique suas credenciais.';
+        END IF;
+
+        -- Verifica a senha usando pgcrypto crypt()
+        IF v_hash <> crypt(v_senha, v_hash) THEN
+            RAISE EXCEPTION 'E-mail ou senha incorretos. Verifique suas credenciais.';
+        END IF;
+
+        -- Atualiza último login em auth.users se existir
+        IF v_auth_user.id IS NOT NULL THEN
+            UPDATE auth.users SET last_sign_in_at = NOW() WHERE id = v_auth_user.id;
+        END IF;
+
+        -- Se não tiver registro em public.usuarios, cria um para retorno consistente
+        IF v_user.id IS NULL THEN
+            INSERT INTO public.usuarios (
+                id, nome, email, telefone, funcao, perfil_nome, status, atualizado_em
+            ) VALUES (
+                v_auth_user.id,
+                COALESCE(v_auth_user.raw_user_meta_data->>'name', 'Paciente'),
+                v_email,
+                v_auth_user.raw_user_meta_data->>'phone',
+                'Paciente',
+                'paciente',
+                'Ativo',
+                NOW()
+            )
+            RETURNING * INTO v_user;
+        END IF;
+
+        RETURN v_user;
+    END IF;
+
+    -- MODO 2: CADASTRO OU SALVAMENTO DE USUÁRIO
+    -- Localiza o ID existente por e-mail para evitar duplicidade de chave
+    SELECT id INTO v_id FROM public.usuarios WHERE LOWER(email) = v_email LIMIT 1;
+    IF v_id IS NULL THEN
+        SELECT id INTO v_id FROM auth.users WHERE LOWER(email) = v_email LIMIT 1;
+    END IF;
+    IF v_id IS NULL THEN
+        v_id := COALESCE((p_dados->>'id')::UUID, gen_random_uuid());
+    END IF;
+
+    -- Se senha foi fornecida, cria/atualiza hash bcrypt
+    IF v_senha IS NOT NULL AND v_senha <> '' THEN
+        v_hash := crypt(v_senha, gen_salt('bf'));
+        v_permissoes := v_permissoes || jsonb_build_object('senha_hash', v_hash);
+        
+        IF (p_dados->>'paciente_id') IS NOT NULL AND (p_dados->>'paciente_id') <> '' THEN
+            v_permissoes := v_permissoes || jsonb_build_object('paciente_id', p_dados->>'paciente_id');
+        END IF;
+
+        -- Sincroniza em auth.users
+        SELECT * INTO v_auth_user FROM auth.users WHERE LOWER(email) = v_email LIMIT 1;
+        IF v_auth_user.id IS NULL THEN
+            INSERT INTO auth.users (
+                instance_id,
+                id,
+                aud,
+                role,
+                email,
+                encrypted_password,
+                email_confirmed_at,
+                raw_app_meta_data,
+                raw_user_meta_data,
+                created_at,
+                updated_at,
+                is_sso_user,
+                is_anonymous
+            ) VALUES (
+                '00000000-0000-0000-0000-000000000000'::uuid,
+                v_id,
+                'authenticated',
+                'authenticated',
+                v_email,
+                v_hash,
+                NOW(),
+                '{"provider":"email","providers":["email"]}'::jsonb,
+                jsonb_build_object('name', v_nome, 'role', COALESCE(p_dados->>'perfil_nome', 'paciente'), 'phone', v_telefone),
+                NOW(),
+                NOW(),
+                FALSE,
+                FALSE
+            );
+        ELSE
+            UPDATE auth.users
+            SET encrypted_password = v_hash,
+                email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+                raw_user_meta_data = jsonb_build_object('name', v_nome, 'role', COALESCE(p_dados->>'perfil_nome', 'paciente'), 'phone', v_telefone),
+                updated_at = NOW()
+            WHERE id = v_auth_user.id;
+        END IF;
+    END IF;
+
+    -- Upsert em public.usuarios com ON CONFLICT (email)
     INSERT INTO public.usuarios (
         id, nome, email, telefone, funcao, cro,
         perfil_id, perfil_nome, cadeira_id, status, avatar_bg, permissoes, atualizado_em
     ) VALUES (
         v_id,
-        p_dados->>'nome',
-        p_dados->>'email',
-        p_dados->>'telefone',
-        p_dados->>'funcao',
+        v_nome,
+        v_email,
+        v_telefone,
+        COALESCE(p_dados->>'funcao', 'Paciente'),
         p_dados->>'cro',
         (p_dados->>'perfil_id')::UUID,
-        COALESCE(p_dados->>'perfil_nome', 'Atendente'),
+        COALESCE(p_dados->>'perfil_nome', 'paciente'),
         (p_dados->>'cadeira_id')::UUID,
         COALESCE(p_dados->>'status', 'Ativo'),
         COALESCE(p_dados->>'avatar_bg', 'bg-[#005F73]'),
-        COALESCE(p_dados->'permissoes', '{}'::jsonb),
+        v_permissoes,
         NOW()
     )
-    ON CONFLICT (id) DO UPDATE SET
+    ON CONFLICT (email) DO UPDATE SET
+        nome = EXCLUDED.nome,
+        telefone = EXCLUDED.telefone,
+        funcao = EXCLUDED.funcao,
+        cro = EXCLUDED.cro,
+        perfil_id = EXCLUDED.perfil_id,
+        perfil_nome = EXCLUDED.perfil_nome,
+        cadeira_id = EXCLUDED.cadeira_id,
+        status = EXCLUDED.status,
+        permissoes = EXCLUDED.permissoes,
+        atualizado_em = NOW()
+    RETURNING * INTO v_user;
         nome = EXCLUDED.nome,
         telefone = EXCLUDED.telefone,
         funcao = EXCLUDED.funcao,
@@ -576,9 +709,6 @@ BEGIN
   IF NEW.email_confirmed_at IS NULL THEN
     NEW.email_confirmed_at := NOW();
   END IF;
-  IF NEW.confirmed_at IS NULL THEN
-    NEW.confirmed_at := NOW();
-  END IF;
   RETURN NEW;
 END;
 $$;
@@ -592,8 +722,302 @@ CREATE TRIGGER on_auth_user_auto_confirm
 
 -- Atualiza usuários pré-existentes que não confirmaram
 UPDATE auth.users
-SET email_confirmed_at = NOW(), confirmed_at = NOW()
+SET email_confirmed_at = NOW()
 WHERE email_confirmed_at IS NULL;
+
+-- 10. EXCLUSÃO EM CASCATA DE PACIENTE (PACIENTES, AGENDAMENTOS, USUÁRIOS E AUTH)
+CREATE OR REPLACE FUNCTION public.excluir_paciente_cascata(
+    p_paciente_id UUID,
+    p_email TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_paciente public.pacientes;
+    v_email TEXT;
+    v_agendamentos_count INT := 0;
+    v_usuarios_count INT := 0;
+    v_auth_count INT := 0;
+    v_is_staff BOOLEAN := FALSE;
+BEGIN
+    -- 1. Localiza o paciente pelo ID ou E-mail
+    SELECT * INTO v_paciente FROM public.pacientes WHERE id = p_paciente_id;
+    
+    IF v_paciente.id IS NULL AND p_email IS NOT NULL AND p_email <> '' THEN
+        SELECT * INTO v_paciente FROM public.pacientes WHERE LOWER(email) = LOWER(p_email) LIMIT 1;
+    END IF;
+
+    IF v_paciente.id IS NOT NULL THEN
+        p_paciente_id := v_paciente.id;
+        v_email := COALESCE(p_email, v_paciente.email);
+    ELSE
+        v_email := p_email;
+    END IF;
+
+    -- 2. Remove agendamentos associados
+    IF p_paciente_id IS NOT NULL THEN
+        WITH del_ag AS (
+            DELETE FROM public.agendamentos
+            WHERE paciente_id = p_paciente_id
+            RETURNING id
+        )
+        SELECT count(*) INTO v_agendamentos_count FROM del_ag;
+
+        -- 3. Remove itens clínicos / prontuário / odontograma / orçamentos
+        DELETE FROM public.evolucoes_prontuario WHERE paciente_id = p_paciente_id;
+        DELETE FROM public.odontograma_itens WHERE paciente_id = p_paciente_id;
+        DELETE FROM public.orcamento_itens WHERE orcamento_id IN (SELECT id FROM public.orcamentos WHERE paciente_id = p_paciente_id);
+        DELETE FROM public.orcamentos WHERE paciente_id = p_paciente_id;
+        DELETE FROM public.transacoes_financeiras WHERE paciente_id = p_paciente_id;
+
+        -- 4. Remove o registro principal de public.pacientes
+        DELETE FROM public.pacientes WHERE id = p_paciente_id;
+    END IF;
+
+    -- 5. Tratamento inteligente de public.usuarios e auth.users
+    -- Protege contas da equipe médica e administrativa (Administrador, Dentista, etc.)
+    IF v_email IS NOT NULL AND v_email <> '' THEN
+        SELECT EXISTS (
+            SELECT 1 FROM public.usuarios 
+            WHERE LOWER(email) = LOWER(v_email) 
+              AND LOWER(perfil_nome) NOT IN ('paciente', '')
+              AND (p_paciente_id IS NULL OR id <> p_paciente_id)
+        ) INTO v_is_staff;
+
+        -- Só remove de public.usuarios se NÃO for membro do corpo clínico / administrativo
+        IF NOT v_is_staff THEN
+            WITH del_usr AS (
+                DELETE FROM public.usuarios
+                WHERE (LOWER(email) = LOWER(v_email) OR (p_paciente_id IS NOT NULL AND id = p_paciente_id))
+                  AND LOWER(perfil_nome) IN ('paciente', '')
+                RETURNING id
+            )
+            SELECT count(*) INTO v_usuarios_count FROM del_usr;
+
+            -- Remove de auth.users do Supabase caso exista registro de acesso de paciente
+            BEGIN
+                WITH del_auth AS (
+                    DELETE FROM auth.users
+                    WHERE (LOWER(email) = LOWER(v_email) OR (p_paciente_id IS NOT NULL AND id = p_paciente_id))
+                      AND (
+                        raw_user_meta_data->>'role' = 'paciente'
+                        OR (p_paciente_id IS NOT NULL AND raw_user_meta_data->>'paciente_id' = p_paciente_id::text)
+                        OR NOT EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.users.id AND LOWER(u.perfil_nome) NOT IN ('paciente', ''))
+                      )
+                    RETURNING id
+                )
+                SELECT count(*) INTO v_auth_count FROM del_auth;
+            EXCEPTION WHEN OTHERS THEN
+                v_auth_count := 0;
+            END;
+        END IF;
+    END IF;
+
+    -- 6. Registro na Trilha de Auditoria
+    INSERT INTO public.auditoria_logs (acao, entidade, entidade_id, detalhes, dados_anteriores)
+    VALUES (
+        'EXCLUIR_PACIENTE_CASCATA',
+        'pacientes',
+        COALESCE(p_paciente_id::text, v_email, 'DESCONHECIDO'),
+        'Exclusão em cascata do paciente ' || COALESCE(v_paciente.nome, 'ID: ' || COALESCE(p_paciente_id::text, '')) || ' realizada com sucesso.',
+        to_jsonb(v_paciente)
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'paciente_id', p_paciente_id,
+        'nome', v_paciente.nome,
+        'agendamentos_deletados', v_agendamentos_count,
+        'usuarios_deletados', v_usuarios_count,
+        'auth_deletados', v_auth_count,
+        'is_staff_preservado', v_is_staff
+    );
+END;
+$$;
+
+-- 11. REGISTRO OFICIAL DE ACESSO DO PACIENTE (SUPABASE AUTH + USUÁRIOS)
+CREATE OR REPLACE FUNCTION public.cadastrar_ou_atualizar_acesso_paciente(
+    p_nome TEXT,
+    p_email TEXT,
+    p_senha TEXT,
+    p_telefone TEXT DEFAULT NULL,
+    p_paciente_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_paciente_id UUID;
+BEGIN
+    p_email := LOWER(TRIM(p_email));
+    
+    -- 1. Identifica ou associa o paciente na tabela public.pacientes
+    IF p_paciente_id IS NOT NULL THEN
+        v_paciente_id := p_paciente_id;
+    ELSE
+        SELECT id INTO v_paciente_id FROM public.pacientes WHERE LOWER(email) = p_email LIMIT 1;
+        IF v_paciente_id IS NULL THEN
+            v_paciente_id := gen_random_uuid();
+        END IF;
+    END IF;
+
+    -- 2. Localiza se já existe registro em auth.users
+    SELECT id INTO v_user_id FROM auth.users WHERE LOWER(email) = p_email LIMIT 1;
+    
+    IF v_user_id IS NULL THEN
+        v_user_id := COALESCE(v_paciente_id, gen_random_uuid());
+        
+        INSERT INTO auth.users (
+            instance_id,
+            id,
+            aud,
+            role,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            created_at,
+            updated_at,
+            is_sso_user,
+            is_anonymous
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000000'::uuid,
+            v_user_id,
+            'authenticated',
+            'authenticated',
+            p_email,
+            crypt(p_senha, gen_salt('bf')),
+            NOW(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            jsonb_build_object('name', p_nome, 'role', 'paciente', 'phone', p_telefone, 'paciente_id', v_paciente_id::text, 'email_verified', true),
+            NOW(),
+            NOW(),
+            FALSE,
+            FALSE
+        );
+    ELSE
+        -- Atualiza senha e metadados
+        UPDATE auth.users
+        SET encrypted_password = crypt(p_senha, gen_salt('bf')),
+            email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+            raw_user_meta_data = jsonb_build_object('name', p_nome, 'role', 'paciente', 'phone', p_telefone, 'paciente_id', v_paciente_id::text, 'email_verified', true),
+            updated_at = NOW()
+        WHERE id = v_user_id;
+    END IF;
+
+    -- 3. Atualiza ou insere em public.usuarios (perfil_nome: 'paciente')
+    INSERT INTO public.usuarios (
+        id, nome, email, telefone, funcao, perfil_nome, status, atualizado_em
+    ) VALUES (
+        v_user_id,
+        p_nome,
+        p_email,
+        p_telefone,
+        'Paciente',
+        'paciente',
+        'Ativo',
+        NOW()
+    )
+    ON CONFLICT (email) DO UPDATE SET
+        nome = EXCLUDED.nome,
+        telefone = COALESCE(EXCLUDED.telefone, public.usuarios.telefone),
+        funcao = 'Paciente',
+        perfil_nome = 'paciente',
+        status = 'Ativo',
+        atualizado_em = NOW();
+
+    -- 4. Trilha de auditoria
+    INSERT INTO public.auditoria_logs (acao, entidade, entidade_id, detalhes)
+    VALUES (
+        'CADASTRO_PORTAL_PACIENTE',
+        'auth.users',
+        v_user_id::text,
+        'Credenciais de acesso ao portal geradas para o paciente ' || p_nome || ' (' || p_email || ')'
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'user_id', v_user_id,
+        'paciente_id', v_paciente_id,
+        'email', p_email,
+        'name', p_nome
+    );
+END;
+$$;
+
+-- 12. AUTENTICAÇÃO UNIVERSAL DE USUÁRIOS & PACIENTES (SEGURO COM BCRYPT PGCRYPTO)
+CREATE OR REPLACE FUNCTION public.autenticar_usuario(
+    p_email TEXT,
+    p_senha TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+    v_user auth.users;
+    v_usuario public.usuarios;
+    v_paciente public.pacientes;
+    v_nome TEXT;
+    v_role TEXT := 'paciente';
+BEGIN
+    p_email := LOWER(TRIM(p_email));
+
+    -- 1. Busca em auth.users
+    SELECT * INTO v_user FROM auth.users WHERE LOWER(email) = p_email LIMIT 1;
+
+    IF v_user.id IS NOT NULL THEN
+        -- Valida a senha usando bcrypt do pgcrypto
+        IF v_user.encrypted_password = crypt(p_senha, v_user.encrypted_password) THEN
+            -- Atualiza last_sign_in_at
+            UPDATE auth.users SET last_sign_in_at = NOW() WHERE id = v_user.id;
+
+            -- Busca dados complementares
+            SELECT * INTO v_usuario FROM public.usuarios WHERE LOWER(email) = p_email LIMIT 1;
+            SELECT * INTO v_paciente FROM public.pacientes WHERE LOWER(email) = p_email LIMIT 1;
+
+            v_nome := COALESCE(v_paciente.nome, v_usuario.nome, v_user.raw_user_meta_data->>'name', 'Paciente');
+            v_role := COALESCE(v_usuario.perfil_nome, v_user.raw_user_meta_data->>'role', 'paciente');
+
+            RETURN jsonb_build_object(
+                'success', true,
+                'user', jsonb_build_object(
+                    'id', v_user.id,
+                    'email', v_user.email,
+                    'name', v_nome,
+                    'role', v_role
+                )
+            );
+        ELSE
+            RETURN jsonb_build_object(
+                'success', false,
+                'error', 'E-mail ou senha incorretos. Verifique suas credenciais.'
+            );
+        END IF;
+    END IF;
+
+    -- 2. Fallback caso o usuário não esteja em auth.users mas esteja em public.pacientes
+    SELECT * INTO v_paciente FROM public.pacientes WHERE LOWER(email) = p_email LIMIT 1;
+    IF v_paciente.id IS NOT NULL THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'E-mail ou senha incorretos. Verifique suas credenciais.'
+        );
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', false,
+        'error', 'Usuário não encontrado. Crie seu cadastro para continuar.'
+    );
+END;
+$$;
 
 -- CONCEDER PERMISSÕES UNIVERSAIS DE EXECUÇÃO RPC
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;

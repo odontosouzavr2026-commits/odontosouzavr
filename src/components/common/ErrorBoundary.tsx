@@ -32,7 +32,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleGoHome = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+    const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/paineladmin');
+    window.location.href = isAdmin ? '/paineladmin' : '/';
   };
 
   public render() {

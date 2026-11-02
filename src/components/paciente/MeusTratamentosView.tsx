@@ -94,8 +94,8 @@ export const MeusTratamentosView: React.FC<MeusTratamentosViewProps> = ({
     toast.info('Exportando Prontuário', 'Gerando Relatório Clínico Oficial em PDF...');
     setTimeout(() => {
       const element = document.createElement('a');
-      const patientName = patientData?.fullName || 'Paciente Odonto Souza';
-      const patientCode = patientData?.code || '#OS-2026';
+      const patientName = patientData?.fullName || 'Paciente';
+      const patientCode = patientData?.code || patientData?.prontuario || '#OS-001';
 
       const etapasTexto =
         (treatmentPlan?.etapas || []).length > 0
@@ -150,7 +150,7 @@ Odonto Souza • Central de Atendimento: (65) 99605-5823`;
     toast.info('Receituário Digital', 'Baixando receituário e atestado assinado via ICP-Brasil...');
     setTimeout(() => {
       const element = document.createElement('a');
-      const patientName = patientData?.fullName || 'Paciente Odonto Souza';
+      const patientName = patientData?.fullName || 'Paciente';
 
       const orientacoesTexto =
         (treatmentPlan?.orientacoes || []).length > 0

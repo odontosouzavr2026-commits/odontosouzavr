@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   ShieldCheck,
@@ -35,9 +35,15 @@ interface MeusDadosViewProps {
 
 export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSaved }) => {
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const initialFotoUrl = (patientData?.avatarUrl && !patientData.avatarUrl.includes('unsplash.com') && !patientData.avatarUrl.includes('placeholder'))
+    ? patientData.avatarUrl
+    : '';
 
   // Estados do Formulário
   const [formData, setFormData] = useState({
+    fotoUrl: initialFotoUrl,
     nomeCompleto: patientData?.fullName || '',
     nomeSocial: patientData?.socialName || '',
     cpf: patientData?.cpf || '',
@@ -76,8 +82,13 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
 
   useEffect(() => {
     if (patientData) {
+      const cleanFoto = (patientData.avatarUrl && !patientData.avatarUrl.includes('unsplash.com') && !patientData.avatarUrl.includes('placeholder'))
+        ? patientData.avatarUrl
+        : '';
+
       setFormData((prev) => ({
         ...prev,
+        fotoUrl: cleanFoto || prev.fotoUrl,
         nomeCompleto: patientData.fullName || prev.nomeCompleto,
         nomeSocial: patientData.socialName || prev.nomeSocial,
         cpf: patientData.cpf || prev.cpf,
@@ -128,6 +139,7 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
           gender: formData.genero,
           maritalStatus: formData.estadoCivil,
           occupation: formData.profissao,
+          avatarUrl: formData.fotoUrl || '',
           zipCode: formData.cep,
           street: formData.logradouro,
           number: formData.numero,
@@ -164,6 +176,7 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
           gender: formData.genero,
           maritalStatus: formData.estadoCivil,
           occupation: formData.profissao,
+          avatarUrl: formData.fotoUrl ? formData.fotoUrl : undefined,
           zipCode: formData.cep,
           street: formData.logradouro,
           number: formData.numero,
@@ -189,9 +202,70 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
     toast.info('Alterações Descartadas', 'Os dados foram restaurados para a versão atual do prontuário.');
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning('Formato Inválido', 'Selecione um arquivo de imagem válido (PNG, JPG, WEBP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning('Arquivo Muito Grande', 'A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setFormData((prev) => ({ ...prev, fotoUrl: result }));
+      toast.success('Foto Carregada', 'A nova foto foi carregada. Clique em "Salvar Alterações" para salvar no seu perfil.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData((prev) => ({ ...prev, fotoUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    toast.info('Foto Removida', 'A foto de perfil foi removida. O sistema agora exibirá suas iniciais.');
+  };
+
   const maskedCpf = isCpfVisible
     ? formData.cpf
     : formData.cpf.replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, '$1.***.***-$4');
+
+  const calculateAge = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const birth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    if (isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+
+  const calculatedAge = calculateAge(formData.dataNascimento);
+  const formattedBirth = formData.dataNascimento
+    ? formData.dataNascimento.split('-').reverse().join('/')
+    : 'Não informada';
+
+  const patientInitials = (formData.nomeCompleto || 'PA')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('') || 'PA';
+
+  const hasValidPhoto = Boolean(
+    formData.fotoUrl &&
+    formData.fotoUrl.trim() !== '' &&
+    !formData.fotoUrl.includes('unsplash.com') &&
+    !formData.fotoUrl.includes('placeholder')
+  );
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
@@ -255,17 +329,31 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
       {/* ============================================================== */}
       <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-slate-200/90 flex flex-col sm:flex-row items-center sm:items-start gap-6">
         <div className="relative group shrink-0">
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl p-1 bg-gradient-to-tr from-[#005f73] to-[#0A9396] shadow-md">
-            <img
-              src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"
-              alt={formData.nomeCompleto || 'Foto do Paciente'}
-              className="w-full h-full object-cover rounded-xl"
-            />
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handlePhotoSelect}
+            accept="image/*"
+            className="hidden"
+            aria-label="Upload de foto de perfil"
+          />
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl p-1 bg-gradient-to-tr from-[#005f73] to-[#0A9396] shadow-md flex items-center justify-center overflow-hidden">
+            {hasValidPhoto ? (
+              <img
+                src={formData.fotoUrl}
+                alt={formData.nomeCompleto || 'Foto do Paciente'}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#005f73] rounded-xl flex items-center justify-center text-white font-extrabold text-2xl sm:text-3xl select-none uppercase">
+                {patientInitials}
+              </div>
+            )}
           </div>
           <button
             type="button"
-            onClick={() => toast.info('Foto de Perfil', 'Selecione uma foto recente do seu dispositivo.')}
-            className="absolute -bottom-2 -right-2 p-2 bg-[#005f73] hover:bg-[#004655] text-white rounded-xl shadow-md cursor-pointer transition-all"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute -bottom-2 -right-2 p-2 bg-[#005f73] hover:bg-[#004655] text-white rounded-xl shadow-md cursor-pointer transition-all active:scale-95"
             title="Alterar foto"
           >
             <Camera className="w-4 h-4" />
@@ -275,7 +363,7 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
         <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3 flex-1 min-w-0">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">
-              {formData.nomeCompleto}
+              {formData.nomeCompleto || 'Paciente'}
             </h2>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-[#005f73] font-bold text-xs border border-teal-200">
               <Check className="w-3.5 h-3.5 stroke-[3] text-[#0A9396]" />
@@ -284,7 +372,7 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
           </div>
 
           <p className="text-xs text-slate-500 font-medium">
-            {formData.profissao} • Jardins, SP
+            {formData.profissao || 'Profissão não informada'} • {formData.cidade ? `${formData.cidade}${formData.uf ? `, ${formData.uf}` : ''}` : 'Localização não informada'}
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full pt-1">
@@ -292,45 +380,53 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                 Idade
               </span>
-              <span className="text-sm sm:text-base font-black text-slate-900">32 anos</span>
-              <span className="text-[11px] text-slate-500">14/08/1992</span>
+              <span className="text-sm sm:text-base font-black text-slate-900">
+                {calculatedAge !== null ? `${calculatedAge} anos` : 'Não informada'}
+              </span>
+              <span className="text-[11px] text-slate-500">{formattedBirth}</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                Cliente Desde
+                Convênio
               </span>
-              <span className="text-sm sm:text-base font-black text-slate-900">Jan / 2024</span>
-              <span className="text-[11px] text-[#0A9396] font-semibold">13 meses ativa</span>
+              <span className="text-sm sm:text-base font-black text-slate-900 truncate">
+                {formData.operadora || 'Particular'}
+              </span>
+              <span className="text-[11px] text-[#0A9396] font-semibold">
+                {formData.numeroCarteirinha ? `Cartão: ${formData.numeroCarteirinha}` : 'Atendimento Particular'}
+              </span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 col-span-2 sm:col-span-1 flex flex-col">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                Última Revisão
+                Status Cadastral
               </span>
-              <span className="text-sm sm:text-base font-black text-slate-900">10/02/2025</span>
-              <span className="text-[11px] text-emerald-600 font-semibold">Atualizado</span>
+              <span className="text-sm sm:text-base font-black text-slate-900">Ativo</span>
+              <span className="text-[11px] text-emerald-600 font-semibold">Prontuário Digital</span>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
-              onClick={() => toast.info('Upload', 'Upload de imagem em alta resolução.')}
+              onClick={() => fileInputRef.current?.click()}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#005f73] font-bold text-xs transition-colors cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Carregar Nova Imagem</span>
+              <span>{hasValidPhoto ? 'Trocar Imagem' : 'Carregar Nova Imagem'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => toast.warning('Remover Foto', 'A foto atual de perfil foi desvinculada.')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold text-xs transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Remover Foto</span>
-            </button>
+            {hasValidPhoto && (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remover Foto</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

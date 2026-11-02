@@ -26,6 +26,7 @@ import { PortalPacienteConfigView } from './components/configuracoes/PortalPacie
 import { ConveniosView } from './components/convenios/ConveniosView';
 import { MinhaContaView } from './components/paciente/MinhaContaView';
 import { LoginView } from './components/auth/LoginView';
+import { InstitucionalView } from './components/institucional/InstitucionalView';
 import { PacienteItem } from './types/pacientes';
 import { scrollToTop } from './utils/scrollUtils';
 
@@ -35,14 +36,33 @@ interface AuthUser {
   role: string;
 }
 
-const getInitialPath = (): string => {
+export type AppRoute = 'institucional' | 'paciente' | 'admin';
+
+interface RouteState {
+  currentRoute: AppRoute;
+  activePath: string;
+}
+
+const getInitialRouteState = (): RouteState => {
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
-    if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
-      return 'minhaconta';
+    // Rota administrativa explícita
+    if (pathname === '/paineladmin' || pathname.startsWith('/paineladmin')) {
+      return { currentRoute: 'admin', activePath: 'dashboard' };
     }
+    // Rota /login redireciona para /paineladmin
+    if (pathname === '/login') {
+      window.history.replaceState({}, '', '/paineladmin');
+      return { currentRoute: 'admin', activePath: 'dashboard' };
+    }
+    // Rota do paciente explícita
+    if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
+      return { currentRoute: 'paciente', activePath: 'minhaconta' };
+    }
+    // Raiz ou qualquer rota pública (localhost:5173 ou odontosouzavr.com.br)
+    return { currentRoute: 'institucional', activePath: 'home' };
   }
-  return 'dashboard';
+  return { currentRoute: 'institucional', activePath: 'home' };
 };
 
 export default function App() {
@@ -54,38 +74,80 @@ export default function App() {
       return null;
     }
   });
-  const [activePath, setActivePath] = useState<string>(getInitialPath);
+
+  const [routeState, setRouteState] = useState<RouteState>(() => getInitialRouteState());
+  const currentRoute = routeState.currentRoute;
+  const activePath = routeState.activePath;
+
+  const setActivePath = (path: string) => {
+    setRouteState((prev) => ({ ...prev, activePath: path }));
+  };
+
   const [selectedPatient, setSelectedPatient] = useState<PacienteItem | null>(null);
 
   useEffect(() => {
     scrollToTop();
-  }, [activePath]);
+  }, [activePath, currentRoute]);
 
-  // Sincroniza com histórico do navegador para suportar /minhaconta diretamente
+  // Sincroniza com histórico do navegador para suportar /, /minhaconta e /paineladmin
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
-      if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
-        setActivePath('minhaconta');
-      } else if (activePath === 'minhaconta') {
-        setActivePath('dashboard');
+      if (pathname === '/paineladmin' || pathname.startsWith('/paineladmin')) {
+        setRouteState((prev) => ({
+          currentRoute: 'admin',
+          activePath: prev.activePath === 'minhaconta' || prev.activePath === 'home' ? 'dashboard' : prev.activePath,
+        }));
+      } else if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
+        setRouteState({
+          currentRoute: 'paciente',
+          activePath: 'minhaconta',
+        });
+      } else {
+        setRouteState({
+          currentRoute: 'institucional',
+          activePath: 'home',
+        });
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [activePath]);
+  }, []);
 
   // ============================================================================
   // RBAC GUARD (ROLE-BASED ACCESS CONTROL)
   // Perfil 'paciente' é estritamente restrito à Área do Paciente (/minhaconta).
-  // Qualquer rota administrativa é interceptada e bloqueada.
+  // Qualquer tentativa de acessar /paineladmin é interceptada e bloqueada.
   // ============================================================================
   const isPacienteRole = currentUser?.role?.toLowerCase() === 'paciente';
 
+  useEffect(() => {
+    if (currentUser && isPacienteRole && currentRoute === 'admin') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/minhaconta') {
+        window.history.replaceState({}, '', '/minhaconta');
+      }
+      setRouteState({
+        currentRoute: 'paciente',
+        activePath: 'minhaconta',
+      });
+    }
+  }, [currentUser, isPacienteRole, currentRoute]);
+
   const handleNavigate = (path: string) => {
     // Bloqueia tentativas de navegação para áreas administrativas se for paciente
-    if (isPacienteRole && path !== 'minhaconta') {
+    if (isPacienteRole && (path === 'paineladmin' || (path !== 'minhaconta' && path !== '/' && path !== 'institucional'))) {
       console.warn('[RBAC Security Guard] Acesso negado: Perfil paciente restrito a /minhaconta');
+      return;
+    }
+
+    if (path === '/' || path === 'institucional' || path === 'home') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.pushState({}, '', '/');
+      }
+      setRouteState({
+        currentRoute: 'institucional',
+        activePath: 'home',
+      });
       return;
     }
 
@@ -93,22 +155,55 @@ export default function App() {
       if (typeof window !== 'undefined' && window.location.pathname !== '/minhaconta') {
         window.history.pushState({}, '', '/minhaconta');
       }
-    } else {
-      if (typeof window !== 'undefined' && window.location.pathname === '/minhaconta') {
-        window.history.pushState({}, '', '/');
-      }
+      setRouteState({
+        currentRoute: 'paciente',
+        activePath: 'minhaconta',
+      });
+      return;
     }
-    setActivePath(path);
+
+    if (path === 'paineladmin' || path === 'dashboard') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/paineladmin') {
+        window.history.pushState({}, '', '/paineladmin');
+      }
+      setRouteState({
+        currentRoute: 'admin',
+        activePath: 'dashboard',
+      });
+      return;
+    }
+
+    // Navegações internas do painel administrativo
+    if (typeof window !== 'undefined' && window.location.pathname !== '/paineladmin') {
+      window.history.pushState({}, '', '/paineladmin');
+    }
+    setRouteState({
+      currentRoute: 'admin',
+      activePath: path,
+    });
   };
 
   const handleLogout = () => {
     localStorage.removeItem('odonto_user');
     sessionStorage.removeItem('odonto_user');
     setCurrentUser(null);
-    if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', '/');
+    if (currentRoute === 'admin') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/paineladmin') {
+        window.history.pushState({}, '', '/paineladmin');
+      }
+      setRouteState({
+        currentRoute: 'admin',
+        activePath: 'dashboard',
+      });
+    } else {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.pushState({}, '', '/');
+      }
+      setRouteState({
+        currentRoute: 'institucional',
+        activePath: 'home',
+      });
     }
-    setActivePath('login');
   };
 
   const handleLoginSuccess = (user: AuthUser) => {
@@ -116,161 +211,194 @@ export default function App() {
     if (user.role && user.role.toLowerCase() === 'paciente') {
       handleNavigate('minhaconta');
     } else {
-      setActivePath('dashboard');
+      if (typeof window !== 'undefined' && window.location.pathname !== '/paineladmin') {
+        window.history.pushState({}, '', '/paineladmin');
+      }
+      setRouteState({
+        currentRoute: 'admin',
+        activePath: 'dashboard',
+      });
     }
   };
 
-  // Se a rota for /minhaconta ou se o perfil for 'paciente', renderiza a Área do Paciente de forma isolada
-  if (activePath === 'minhaconta' || (currentUser && isPacienteRole)) {
+  // 1. Rota Institucional (Raiz / no localhost:5173 ou odontosouzavr.com.br)
+  if (currentRoute === 'institucional') {
+    return (
+      <InstitucionalView
+        currentUser={currentUser}
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToPaciente={() => handleNavigate('minhaconta')}
+        onNavigateToAdmin={() => handleNavigate('paineladmin')}
+      />
+    );
+  }
+
+  // 2. Rota Área do Paciente (/minhaconta ou usuário logado com perfil paciente)
+  if (currentRoute === 'paciente' || (currentUser && isPacienteRole)) {
     return (
       <MinhaContaView
         currentUser={currentUser}
-        onNavigateToAdmin={isPacienteRole ? undefined : () => handleNavigate('dashboard')}
+        onNavigateToInstitucional={() => handleNavigate('/')}
+        onNavigateToAdmin={isPacienteRole ? undefined : () => handleNavigate('paineladmin')}
         onLogout={handleLogout}
       />
     );
   }
 
+  // 3. Rota Administrativa (/paineladmin)
+  // Se não estiver logado, exibe a tela de login do painel administrativo
   if (!currentUser) {
     return (
       <LoginView
         onLoginSuccess={handleLoginSuccess}
         onNavigateToPaciente={() => handleNavigate('minhaconta')}
+        onNavigateToInstitucional={() => handleNavigate('/')}
       />
     );
   }
 
-  const isConfigSubmenu = [
-    'dados-clinica',
-    'agenda-horarios',
-    'modelos-documentos',
-    'integracoes-apis',
-  ].includes(activePath);
+    // Se estiver logado como paciente, bloqueia e redireciona para a área do paciente
+    if (isPacienteRole) {
+      return (
+        <MinhaContaView
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
+      );
+    }
 
-  return (
-    <AppLayout
-      activePath={activePath}
-      onNavigate={handleNavigate}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    >
-      {activePath === 'dashboard' && (
-        <DashboardView
-          onNavigate={(path) => setActivePath(path)}
-        />
-      )}
-      {activePath === 'agenda' && (
-        <AgendaView
-          onNavigateToAtendimento={(p) => {
-            if (p) setSelectedPatient(p);
-            setActivePath('atendimento');
-          }}
-          onNavigateToProcedimentos={() => setActivePath('procedimentos')}
-        />
-      )}
-      {activePath === 'atendimento' && (
-        <AtendimentoView
-          selectedPatient={selectedPatient}
-          onBackToDashboard={() => setActivePath('dashboard')}
-          onViewSchedule={() => setActivePath('agenda')}
-          onNavigateToPacientes={() => setActivePath('pacientes')}
-        />
-      )}
-      {activePath === 'procedimentos' && (
-        <ProcedimentosView />
-      )}
-      {activePath === 'pacientes' && (
-        <PacientesView
-          onNavigateToAtendimento={(p) => {
-            if (p) setSelectedPatient(p);
-            setActivePath('atendimento');
-          }}
-        />
-      )}
-      {activePath === 'convenios' && (
-        <ConveniosView />
-      )}
-      {activePath === 'laboratorio' && (
-        <LaboratorioView />
-      )}
-      {activePath === 'estoque' && (
-        <EstoqueView />
-      )}
-      {activePath === 'financeiro' && (
-        <FinanceiroView />
-      )}
-      {activePath === 'usuarios' && (
-        <UsuariosView />
-      )}
-      {activePath === 'relatorios' && (
-        <RelatoriosView onNavigate={handleNavigate} />
-      )}
-      {(activePath === 'template-mensagens' || activePath === 'templates-whatsapp') && (
-        <TemplatesView />
-      )}
-      {activePath === 'conexoes' && (
-        <ConexoesWhatsAppView />
-      )}
-      {activePath === 'auditoria' && (
-        <AuditoriaView />
-      )}
-      {activePath === 'portal-paciente' && (
-        <div className="w-full h-full p-6 bg-slate-50">
-          <PortalPacienteConfigView />
-        </div>
-      )}
-      {isConfigSubmenu && (
-        <ConfiguracaoSubmenuView
-          submenuId={activePath as ConfigSubmenuId}
-          onNavigateToTemplates={() => setActivePath('template-mensagens')}
-        />
-      )}
-      {activePath !== 'dashboard' &&
-        activePath !== 'agenda' &&
-        activePath !== 'atendimento' &&
-        activePath !== 'procedimentos' &&
-        activePath !== 'pacientes' &&
-        activePath !== 'convenios' &&
-        activePath !== 'laboratorio' &&
-        activePath !== 'estoque' &&
-        activePath !== 'financeiro' &&
-        activePath !== 'usuarios' &&
-        activePath !== 'relatorios' &&
-        activePath !== 'template-mensagens' &&
-        activePath !== 'templates-whatsapp' &&
-        activePath !== 'conexoes' &&
-        activePath !== 'auditoria' &&
-        activePath !== 'portal-paciente' &&
-        !isConfigSubmenu && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 text-center shadow-xs">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800 capitalize mb-2">
-            Módulo: {activePath}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mb-6">
-            Módulo em desenvolvimento estruturado de acordo com as diretrizes do ODONTO SOUZA.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => setActivePath('dashboard')}
-              className="px-4 py-2 bg-[#005F73] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#004655] transition-colors cursor-pointer"
-            >
-              Visão Geral (Dashboard)
-            </button>
-            <button
-              onClick={() => setActivePath('agenda')}
-              className="px-4 py-2 bg-[#00696c] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#005F73] transition-colors cursor-pointer"
-            >
-              Agenda Clínica
-            </button>
-            <button
-              onClick={() => setActivePath('atendimento')}
-              className="px-4 py-2 bg-[#0A9396] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#00696c] transition-colors cursor-pointer"
-            >
-              Atendimento Clínico
-            </button>
+    // Usuário autenticado da equipe clínica/administrativa
+    const isConfigSubmenu = [
+      'dados-clinica',
+      'agenda-horarios',
+      'modelos-documentos',
+      'integracoes-apis',
+    ].includes(activePath);
+
+    return (
+      <AppLayout
+        activePath={activePath}
+        onNavigate={handleNavigate}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      >
+        {activePath === 'dashboard' && (
+          <DashboardView
+            onNavigate={(path) => handleNavigate(path)}
+          />
+        )}
+        {activePath === 'agenda' && (
+          <AgendaView
+            onNavigateToAtendimento={(p) => {
+              if (p) setSelectedPatient(p);
+              handleNavigate('atendimento');
+            }}
+            onNavigateToProcedimentos={() => handleNavigate('procedimentos')}
+          />
+        )}
+        {activePath === 'atendimento' && (
+          <AtendimentoView
+            selectedPatient={selectedPatient}
+            onBackToDashboard={() => handleNavigate('dashboard')}
+            onViewSchedule={() => handleNavigate('agenda')}
+            onNavigateToPacientes={() => handleNavigate('pacientes')}
+          />
+        )}
+        {activePath === 'procedimentos' && (
+          <ProcedimentosView />
+        )}
+        {activePath === 'pacientes' && (
+          <PacientesView
+            onNavigateToAtendimento={(p) => {
+              if (p) setSelectedPatient(p);
+              handleNavigate('atendimento');
+            }}
+          />
+        )}
+        {activePath === 'convenios' && (
+          <ConveniosView />
+        )}
+        {activePath === 'laboratorio' && (
+          <LaboratorioView />
+        )}
+        {activePath === 'estoque' && (
+          <EstoqueView />
+        )}
+        {activePath === 'financeiro' && (
+          <FinanceiroView />
+        )}
+        {activePath === 'usuarios' && (
+          <UsuariosView />
+        )}
+        {activePath === 'relatorios' && (
+          <RelatoriosView onNavigate={handleNavigate} />
+        )}
+        {(activePath === 'template-mensagens' || activePath === 'templates-whatsapp') && (
+          <TemplatesView />
+        )}
+        {activePath === 'conexoes' && (
+          <ConexoesWhatsAppView />
+        )}
+        {activePath === 'auditoria' && (
+          <AuditoriaView />
+        )}
+        {activePath === 'portal-paciente' && (
+          <div className="w-full h-full p-6 bg-slate-50">
+            <PortalPacienteConfigView />
           </div>
-        </div>
-      )}
-    </AppLayout>
-  );
+        )}
+        {isConfigSubmenu && (
+          <ConfiguracaoSubmenuView
+            submenuId={activePath as ConfigSubmenuId}
+            onNavigateToTemplates={() => handleNavigate('template-mensagens')}
+          />
+        )}
+        {activePath !== 'dashboard' &&
+          activePath !== 'agenda' &&
+          activePath !== 'atendimento' &&
+          activePath !== 'procedimentos' &&
+          activePath !== 'pacientes' &&
+          activePath !== 'convenios' &&
+          activePath !== 'laboratorio' &&
+          activePath !== 'estoque' &&
+          activePath !== 'financeiro' &&
+          activePath !== 'usuarios' &&
+          activePath !== 'relatorios' &&
+          activePath !== 'template-mensagens' &&
+          activePath !== 'templates-whatsapp' &&
+          activePath !== 'conexoes' &&
+          activePath !== 'auditoria' &&
+          activePath !== 'portal-paciente' &&
+          !isConfigSubmenu && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 text-center shadow-xs">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 capitalize mb-2">
+              Módulo: {activePath}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mb-6">
+              Módulo em desenvolvimento estruturado de acordo com as diretrizes do ODONTO SOUZA.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => handleNavigate('dashboard')}
+                className="px-4 py-2 bg-[#005F73] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#004655] transition-colors cursor-pointer"
+              >
+                Visão Geral (Dashboard)
+              </button>
+              <button
+                onClick={() => handleNavigate('agenda')}
+                className="px-4 py-2 bg-[#00696c] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#005F73] transition-colors cursor-pointer"
+              >
+                Agenda Clínica
+              </button>
+              <button
+                onClick={() => handleNavigate('atendimento')}
+                className="px-4 py-2 bg-[#0A9396] text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-[#00696c] transition-colors cursor-pointer"
+              >
+                Atendimento Clínico
+              </button>
+            </div>
+          </div>
+        )}
+      </AppLayout>
+    );
 }

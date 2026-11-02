@@ -52,6 +52,7 @@ import { emitirNotificacaoClinica } from '../../contexts/NotificationContext';
 interface MinhaContaViewProps {
   onLogout?: () => void;
   onNavigateToAdmin?: () => void;
+  onNavigateToInstitucional?: () => void;
   currentUser?: {
     id?: string;
     email?: string;
@@ -153,6 +154,7 @@ interface AppointmentDetail {
 export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
   onLogout,
   onNavigateToAdmin,
+  onNavigateToInstitucional,
   currentUser,
 }) => {
   const toast = useToast();
@@ -406,9 +408,9 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
       }
     }
 
-    const pName = patientData?.fullName || 'Everaldo Souza da Silva';
-    const pPhone = patientData?.phone || '(65) 99605-5823';
-    const pEmail = patientData?.email || 'everaldoszpaciente@gmail.com';
+    const pName = patientFullName;
+    const pPhone = patientData?.phone || '';
+    const pEmail = patientEmail;
     const pDataConsulta = `${selectedDay.dayName}, ${selectedDay.dayNumber} de ${selectedDay.month}`;
 
     emitirNotificacaoClinica({
@@ -440,8 +442,8 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
   const handleExportPDF = () => {
     toast.info('Exportando Prontuário', 'Gerando o laudo odontológico oficial em formato PDF...');
     setTimeout(() => {
-      const patientName = patientData?.fullName || 'Paciente Odonto Souza';
-      const patientPront = patientData?.code || 'OS-2026';
+      const patientName = patientData?.fullName || currentUser?.name || 'Paciente';
+      const patientPront = patientData?.code || patientData?.prontuario || 'OS-001';
       const element = document.createElement('a');
       const proceduresList =
         proceduresHistory.length > 0
@@ -473,10 +475,26 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
   };
 
   // Formatações padronizadas de identificação do paciente
-  const patientFullName = patientData?.fullName || currentUser?.name || 'Paciente';
-  const firstName = patientFullName.trim().split(' ')[0] || 'Paciente';
+  const patientFullName = patientData?.fullName?.trim() || currentUser?.name?.trim() || 'Paciente';
+  const patientEmail = patientData?.email?.trim() || currentUser?.email?.trim() || '';
+  const firstName = patientFullName.split(' ')[0] || 'Paciente';
   const rawCode = patientData?.code || patientData?.prontuario || 'OS-001';
   const prontuarioDisplay = rawCode.startsWith('#') ? rawCode : `#${rawCode}`;
+
+  const patientInitials = (patientFullName || 'PA')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('') || 'PA';
+
+  const hasValidPhoto = Boolean(
+    patientData?.avatarUrl &&
+    typeof patientData.avatarUrl === 'string' &&
+    patientData.avatarUrl.trim() !== '' &&
+    !patientData.avatarUrl.includes('unsplash.com') &&
+    !patientData.avatarUrl.includes('placeholder')
+  );
 
   return (
     <div className="flex min-h-screen w-full bg-[#f8f9ff] font-sans text-[#0b1c30] selection:bg-[#86f0f3] selection:text-[#002021]">
@@ -527,12 +545,18 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
 
               {/* Box de Informações do Paciente Logado */}
               <div className="p-3.5 mx-4 my-3 rounded-2xl bg-white/10 border border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 shrink-0 ring-2 ring-white/30">
-                  <img
-                    src={patientData?.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"}
-                    alt={patientData?.fullName || "Foto do Paciente"}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 shrink-0 ring-2 ring-white/30 flex items-center justify-center">
+                  {hasValidPhoto ? (
+                    <img
+                      src={patientData!.avatarUrl}
+                      alt={patientFullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#0A9396] text-white font-extrabold text-sm flex items-center justify-center select-none uppercase">
+                      {patientInitials}
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-white truncate">
@@ -633,8 +657,22 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
               </nav>
             </div>
 
-            {/* Rodapé do Drawer com Botão Sair */}
-            <div className="p-4 sm:p-5 border-t border-white/10">
+            {/* Rodapé do Drawer com Ações */}
+            <div className="p-4 sm:p-5 border-t border-white/10 space-y-2">
+              {onNavigateToAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    onNavigateToAdmin();
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 bg-teal-500/20 hover:bg-teal-600 text-teal-100 hover:text-white border border-teal-400/30 hover:border-teal-600 py-2.5 px-4 rounded-xl font-bold text-xs transition-all duration-200 shadow-xs cursor-pointer group"
+                  title="Acessar o Painel Administrativo (/paineladmin)"
+                >
+                  <ArrowLeft className="w-4 h-4 text-teal-300 group-hover:text-white transition-colors" />
+                  <span>Painel Admin (/paineladmin)</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -642,7 +680,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                   handleLogoutClick();
                 }}
                 className="w-full flex items-center justify-center space-x-2.5 bg-rose-500/20 hover:bg-rose-600 text-rose-100 hover:text-white border border-rose-400/30 hover:border-rose-600 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 shadow-xs active:scale-98 cursor-pointer group"
-                title="Sair e voltar para a tela de login"
+                title="Sair da sessão"
               >
                 <LogOut className="w-4 h-4 text-rose-300 group-hover:text-white transition-colors" />
                 <span>Sair</span>
@@ -746,13 +784,24 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
           </nav>
         </div>
 
-        {/* Rodapé Sidebar: Botão Sair */}
-        <div className="p-6 border-t border-white/10">
+        {/* Rodapé Sidebar: Ações */}
+        <div className="p-6 border-t border-white/10 space-y-2.5">
+          {onNavigateToAdmin && (
+            <button
+              type="button"
+              onClick={onNavigateToAdmin}
+              className="w-full flex items-center justify-center space-x-2 bg-teal-500/20 hover:bg-teal-600 text-teal-100 hover:text-white border border-teal-400/30 hover:border-teal-600 py-2.5 px-3 rounded-xl font-bold text-xs transition-all duration-200 shadow-xs cursor-pointer group"
+              title="Acessar o Painel Administrativo (/paineladmin)"
+            >
+              <ArrowLeft className="w-4 h-4 text-teal-300 group-hover:text-white transition-colors" />
+              <span>Painel Admin (/paineladmin)</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleLogoutClick}
             className="w-full flex items-center justify-center space-x-2.5 bg-rose-500/15 hover:bg-rose-600 text-rose-100 hover:text-white border border-rose-400/30 hover:border-rose-600 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 shadow-xs active:scale-98 cursor-pointer group"
-            title="Sair e voltar para a tela de login"
+            title="Sair da sessão"
           >
             <LogOut className="w-4 h-4 text-rose-300 group-hover:text-white transition-colors" />
             <span>Sair</span>
@@ -831,19 +880,25 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center space-x-2 sm:space-x-3 p-1 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
               >
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-xs ring-2 ring-[#0A9396]/30 shrink-0">
-                  <img
-                    src={patientData?.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200"}
-                    alt={patientData?.fullName || "Foto do Paciente"}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden shadow-xs ring-2 ring-[#0A9396]/30 shrink-0 flex items-center justify-center">
+                  {hasValidPhoto ? (
+                    <img
+                      src={patientData!.avatarUrl}
+                      alt={patientFullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#005f73] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center select-none uppercase">
+                      {patientInitials}
+                    </div>
+                  )}
                 </div>
                 <div className="text-left hidden md:block">
                   <span className="block text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                    {patientData?.fullName || currentUser?.name || 'Paciente'}
+                    {patientFullName}
                   </span>
                   <span className="block text-[11px] text-slate-500 leading-tight">
-                    {patientData?.email || currentUser?.email || ''}
+                    {patientEmail}
                   </span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
@@ -855,7 +910,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                   <div className="px-4 py-2.5 border-b border-slate-100">
                     <p className="text-[11px] text-slate-400 font-semibold">Conectado(a) como</p>
                     <p className="text-xs font-bold text-slate-800 truncate">
-                      {patientData?.fullName || currentUser?.name || 'Paciente'}
+                      {patientFullName}
                     </p>
                     <p className="text-[11px] text-[#005f73] font-medium">
                       {patientData?.insuranceName || 'Particular'} • {prontuarioDisplay}
@@ -913,6 +968,20 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     <HelpCircle className="w-4 h-4 text-slate-400" />
                     <span>Ajuda & FAQ</span>
                   </button>
+
+                  {onNavigateToInstitucional && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        onNavigateToInstitucional();
+                      }}
+                      className="w-full flex items-center space-x-3 px-4 py-2 text-xs font-semibold text-[#0A9396] hover:bg-teal-50 transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-[#0A9396]" />
+                      <span>Ir para Site da Clínica</span>
+                    </button>
+                  )}
 
                   {onNavigateToAdmin && (
                     <button
@@ -1421,11 +1490,16 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
             {/* Grade de Horários Livres & Painel de Confirmação Rápida */}
             <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/80 flex flex-col lg:flex-row items-center justify-between gap-6">
               <div className="w-full lg:w-auto flex-1">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Clock className="w-4 h-4 text-[#0A9396]" />
-                  <span className="text-xs sm:text-sm font-bold text-slate-900">
-                    Horários disponíveis para {selectedDay.dayName}, {selectedDay.dayNumber} de {selectedDay.month} ({selectedDay.vacancies}):
-                  </span>
+                <div className="space-y-1 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-5 h-5 text-[#0A9396] shrink-0" />
+                    <span className="text-base sm:text-lg font-extrabold text-slate-900">
+                      Horários disponíveis para {selectedDay.dayName}, {selectedDay.dayNumber} de {selectedDay.month}:
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium pl-7">
+                    Clique no horário desejado para prosseguir com o agendamento da sua consulta.
+                  </p>
                 </div>
 
                 {selectedDay.availableTimes.length === 0 ? (
@@ -1433,7 +1507,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     Não há mais vagas livres para agendamento online neste dia. Por favor, escolha outro dia acima.
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-wrap gap-2.5 sm:gap-3.5 pt-1">
                     {selectedDay.availableTimes.map((time) => {
                       const isDoctorOnly = time === '08:10' || (time >= '08:00' && time < '09:00');
                       const isTimeSelected = selectedTime === time;
@@ -1451,16 +1525,16 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                             }
                             setSelectedTime(time);
                           }}
-                          className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center space-x-1.5 ${
+                          className={`min-w-[86px] sm:min-w-[96px] px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-black text-sm sm:text-base transition-all duration-200 shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 ${
                             isDoctorOnly
                               ? 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100/80'
                               : isTimeSelected
-                              ? 'bg-[#00696c] text-white shadow-md scale-105'
-                              : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
+                              ? 'bg-[#005f73] text-white shadow-md scale-105 border-transparent'
+                              : 'bg-white hover:bg-slate-50 hover:border-[#005f73] hover:text-[#005f73] text-slate-800 border border-slate-200 hover:shadow-xs active:scale-95'
                           }`}
-                          title={isDoctorOnly ? 'Horário exclusivo da Administração / Dr. Frankisney' : `Agendar às ${time}`}
+                          title={isDoctorOnly ? 'Horário exclusivo da Administração / Dr. Frankisney' : `Clique para agendar às ${time}`}
                         >
-                          {isDoctorOnly && <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+                          {isDoctorOnly && <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />}
                           <span>{time}</span>
                           {isDoctorOnly && (
                             <span className="text-[10px] font-extrabold uppercase tracking-wide opacity-80 ml-0.5">
