@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { AgendaAppointmentItem, AppointmentScheduleStatus } from '../types/agenda';
 import { whatsappNotificationService } from './whatsappNotificationService';
+import { emitirNotificacaoClinica } from '../contexts/NotificationContext';
 
 // Validador estrito de formato UUID v4 / v1 para PostgreSQL
 function isValidUUID(value: any): boolean {
@@ -509,6 +510,43 @@ export const agendaService = {
         });
       } catch (waErr: any) {
         console.warn('[agendaService.saveAgendamento] Erro no agendamento do WhatsApp:', waErr.message);
+      }
+
+      // 8. Emissão garantida de notificação clínica e sonora em tempo real para todo o sistema (Site, Portal, Recepção)
+      try {
+        const timeFormatted = `${String(startDateTime.getHours()).padStart(2, '0')}:${String(
+          startDateTime.getMinutes()
+        ).padStart(2, '0')}`;
+        const dateFormatted = startDateTime.toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        const capDate = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+
+        emitirNotificacaoClinica({
+          tipo: 'novo_agendamento',
+          titulo: 'Novo Agendamento Confirmado 🦷✨',
+          mensagem: `${pName || 'Paciente'} agendou ${cleanProcName || 'Consulta'} para ${capDate} às ${timeFormatted}.`,
+          detalhes: {
+            pacienteNome: pName || 'Paciente',
+            pacienteTelefone: pPhone || '',
+            dataConsulta: `${capDate} às ${timeFormatted}`,
+            horarioConsulta: timeFormatted,
+            procedimento: cleanProcName || 'Consulta Odontológica',
+            dentista: 'Dr. Frankisney Souza',
+            origem: agendamento.observacoes?.includes('Site Institucional')
+              ? 'site_institucional'
+              : agendamento.observacoes?.includes('Portal do Paciente')
+              ? 'portal_paciente'
+              : 'recepcao',
+            observacoes: agendamento.notes || agendamento.observacoes || 'Agendamento registrado no sistema.',
+          },
+          linkRota: 'agenda',
+        });
+      } catch (notifErr: any) {
+        console.warn('[agendaService.saveAgendamento] Erro ao emitir notificação clínica:', notifErr?.message);
       }
 
       return savedResult;

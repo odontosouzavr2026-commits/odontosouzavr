@@ -631,11 +631,18 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
         tipo: 'novo_agendamento',
         titulo: 'Novo Agendamento via Site Institucional 🦷✨',
         mensagem: `${userToBook.name} agendou ${selectedProcedure} para ${formattedSelectedDate} às ${selectedSlot.time}.`,
-        pacienteNome: userToBook.name,
-        pacienteTelefone: resolvedPhone || '',
-        dataHora: `${formattedSelectedDate} às ${selectedSlot.time}`,
-        procedimento: selectedProcedure,
-        canalOrigem: 'Site Institucional (Home)',
+        detalhes: {
+          pacienteNome: userToBook.name,
+          pacienteTelefone: resolvedPhone || '',
+          pacienteEmail: userToBook.email || '',
+          dataConsulta: `${formattedSelectedDate} às ${selectedSlot.time}`,
+          horarioConsulta: selectedSlot.time,
+          procedimento: selectedProcedure,
+          dentista: 'Dr. Frankisney Souza',
+          origem: 'site_institucional',
+          observacoes: patientNotes ? `[Site Institucional] ${patientNotes}` : 'Agendamento realizado via Página Institucional',
+        },
+        linkRota: 'agenda',
       });
 
       // 3. Limpa memória pendente

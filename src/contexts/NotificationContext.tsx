@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { NotificacaoClinica, NotificacaoTipo, NotificacaoDetalhes } from '../types/notificacoes';
 import { playReceptionBell2x } from '../utils/receptionBellAudio';
 import { useToast } from './ToastContext';
@@ -9,6 +9,7 @@ interface NotificationContextData {
   unreadCount: number;
   somHabilitado: boolean;
   notificacaoSelecionada: NotificacaoClinica | null;
+  carregarNotificacoesReais: () => Promise<void>;
   adicionarNotificacao: (
     dados: {
       tipo: NotificacaoTipo;
@@ -35,8 +36,28 @@ const NotificationContext = createContext<NotificationContextData>(
 
 const STORAGE_KEY = 'odonto_clinica_notificacoes_v2';
 const SOUND_STORAGE_KEY = 'odonto_notificacoes_som_habilitado';
+const READ_STORAGE_KEY = 'odonto_notificacoes_lidas_ids_v2';
+const BROADCAST_CHANNEL_NAME = 'odonto_clinica_notifications_channel_v2';
 
-// Notificações padrão somente se não houver dados reais carregados do Supabase
+// Helper para ler IDs lidos do localStorage
+function getReadIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(READ_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Helper para salvar IDs lidos no localStorage
+function saveReadIds(ids: Set<string>): void {
+  try {
+    localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(Array.from(ids)));
+  } catch {
+    // silencioso
+  }
+}
+
 const DEFAULT_INITIAL_NOTIFICACOES: NotificacaoClinica[] = [];
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -77,10 +98,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   const [notificacaoSelecionada, setNotificacaoSelecionada] =
     useState<NotificacaoClinica | null>(null);
 
-  // Carrega agendamentos reais diretamente do Supabase e sincroniza as notificações
+  // Referência para controlar se é a primeira carga
+  const isFirstLoadRef = useRef(true);
+
+  // Carrega agendamentos e pacientes reais diretamente do Supabase e sincroniza as notificações
   const carregarNotificacoesReais = useCallback(async () => {
     try {
-      const { data: ags, error } = await supabase
+      const readIds = getReadIds();
+
+      // 1. Busca agendamentos recentes ordenados por criação
+      const { data: ags, error: agsError } = await supabase
         .from('agendamentos')
         .select(`
           id,
@@ -93,41 +120,51 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
           procedimentos (nome),
           usuarios (nome)
         `)
-        .order('data_hora_inicio', { ascending: false })
-        .limit(15);
+        .order('criado_em', { ascending: false })
+        .limit(20);
 
-      if (!error && ags && ags.length > 0) {
-        const notificacoesReais: NotificacaoClinica[] = ags.map((ag: any) => {
+      // 2. Busca pacientes recentes ordenados por criação
+      const { data: pacs, error: pacsError } = await supabase
+        .from('pacientes')
+        .select('id, nome, telefone, email, criado_em')
+        .order('criado_em', { ascending: false })
+        .limit(10);
+
+      const notificacoesAgendamentos: NotificacaoClinica[] = [];
+      if (!agsError && ags && ags.length > 0) {
+        ags.forEach((ag: any) => {
           const startDate = new Date(ag.data_hora_inicio);
           const timeStr = startDate.toLocaleTimeString('pt-BR', {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'America/Sao_Paulo',
           });
           const dateStr = startDate.toLocaleDateString('pt-BR', {
             weekday: 'long',
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
+            timeZone: 'America/Sao_Paulo',
           });
           const capitalizedDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
           const pacNome = ag.pacientes?.nome || 'Paciente';
 
-          // Extrai o nome do procedimento real
           let procNome = ag.procedimentos?.nome;
           if (!procNome && ag.observacoes?.includes('Portal do Paciente: ')) {
             procNome = ag.observacoes.split('Portal do Paciente: ')[1].split('.')[0].trim();
           }
           if (!procNome) {
-            procNome = ag.tipo || 'Consulta Odontológica';
+            procNome = ag.tipo || 'Avaliação Gratuita';
           }
 
-          return {
-            id: `notif-ag-${ag.id}`,
-            tipo: 'novo_agendamento' as const,
+          const notifId = `notif-ag-${ag.id}`;
+          notificacoesAgendamentos.push({
+            id: notifId,
+            tipo: 'novo_agendamento',
             titulo: 'Novo Agendamento Confirmado',
             mensagem: `${pacNome} agendou ${procNome} para ${capitalizedDate} às ${timeStr}.`,
             dataHora: ag.criado_em || ag.data_hora_inicio,
-            lida: false,
+            lida: readIds.has(notifId),
             detalhes: {
               pacienteNome: pacNome,
               pacienteTelefone: ag.pacientes?.telefone || '(65) 99605-5823',
@@ -136,37 +173,136 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
               horarioConsulta: timeStr,
               procedimento: procNome,
               dentista: ag.usuarios?.nome || 'Dr. Frankisney Souza',
-              origem: 'portal_paciente',
+              origem: ag.observacoes?.includes('Site Institucional')
+                ? 'site_institucional'
+                : ag.observacoes?.includes('Portal do Paciente')
+                ? 'portal_paciente'
+                : 'sistema',
               observacoes: ag.observacoes || 'Agendado pelo sistema da clínica.',
             },
-            linkRota: 'agenda' as const,
-          };
-        });
-
-        setNotificacoes((prev) => {
-          // Remove mocks legados e registros duplicados
-          const semMocks = prev.filter(
-            (n) =>
-              n.id !== 'notif-1' &&
-              !n.mensagem?.includes('Sábado às 10:00') &&
-              !n.detalhes?.dataConsulta?.includes('Próximo Sábado') &&
-              !n.id.startsWith('notif-ag-')
-          );
-          const idsExistentes = new Set(notificacoesReais.map((n) => n.id));
-          const manter = semMocks.filter((n) => !idsExistentes.has(n.id));
-          return [...notificacoesReais, ...manter];
+            linkRota: 'agenda',
+          });
         });
       }
+
+      const notificacoesPacientes: NotificacaoClinica[] = [];
+      if (!pacsError && pacs && pacs.length > 0) {
+        pacs.forEach((pac: any) => {
+          const notifId = `notif-pac-${pac.id}`;
+          notificacoesPacientes.push({
+            id: notifId,
+            tipo: 'novo_cadastro',
+            titulo: 'Novo Paciente Cadastrado',
+            mensagem: `${pac.nome} foi registrado no sistema clínico.`,
+            dataHora: pac.criado_em || new Date().toISOString(),
+            lida: readIds.has(notifId),
+            detalhes: {
+              pacienteNome: pac.nome,
+              pacienteTelefone: pac.telefone || '',
+              pacienteEmail: pac.email || '',
+              origem: 'sistema',
+            },
+            linkRota: 'pacientes',
+          });
+        });
+      }
+
+      // Unifica e ordena todas as notificações reais do Supabase por data decrescente
+      const todasReais = [...notificacoesAgendamentos, ...notificacoesPacientes].sort(
+        (a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
+      );
+
+      setNotificacoes((prev) => {
+        // Notificações manuais que não vieram do Supabase agendamentos/pacientes
+        const idsExistentes = new Set(todasReais.map((n) => n.id));
+        const manuais = prev.filter(
+          (n) =>
+            !idsExistentes.has(n.id) &&
+            !n.id.startsWith('notif-ag-') &&
+            !n.id.startsWith('notif-pac-') &&
+            n.id !== 'notif-1' &&
+            !n.mensagem?.includes('Sábado às 10:00') &&
+            !n.detalhes?.dataConsulta?.includes('Próximo Sábado')
+        );
+
+        // Detecta se há algum agendamento novo que acabou de chegar (não existia no estado anterior)
+        if (!isFirstLoadRef.current && somHabilitado) {
+          const prevIds = new Set(prev.map((n) => n.id));
+          const recemCriadas = notificacoesAgendamentos.filter((n) => {
+            if (prevIds.has(n.id)) return false;
+            // Se foi criado nos últimos 60 segundos
+            const diffMs = Date.now() - new Date(n.dataHora).getTime();
+            return diffMs >= 0 && diffMs < 60000;
+          });
+
+          if (recemCriadas.length > 0) {
+            playReceptionBell2x();
+            const topNova = recemCriadas[0];
+            toast.info(topNova.titulo, topNova.mensagem);
+          }
+        }
+
+        isFirstLoadRef.current = false;
+
+        return [...todasReais, ...manuais].sort(
+          (a, b) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
+        );
+      });
     } catch (e) {
       console.warn('Erro ao carregar notificações reais:', e);
     }
-  }, []);
+  }, [somHabilitado, toast]);
 
+  // Carga inicial no mount
   useEffect(() => {
     carregarNotificacoesReais();
   }, [carregarNotificacoesReais]);
 
-  // Sincroniza notificações entre abas do navegador
+  // Polling automático e contínuo a cada 12 segundos para sincronização perfeita em tempo real
+  useEffect(() => {
+    const timer = setInterval(() => {
+      carregarNotificacoesReais();
+    }, 12000);
+
+    return () => clearInterval(timer);
+  }, [carregarNotificacoesReais]);
+
+  // BroadcastChannel para sincronização instantânea entre abas
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+
+    try {
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+
+      channel.onmessage = (event) => {
+        const { type, payload } = event.data || {};
+
+        if (type === 'NOVA_NOTIFICACAO' && payload) {
+          setNotificacoes((prev) => {
+            if (prev.some((n) => n.id === payload.id || n.mensagem === payload.mensagem)) {
+              return prev;
+            }
+            return [payload, ...prev];
+          });
+
+          if (somHabilitado) {
+            playReceptionBell2x();
+          }
+          toast.info(payload.titulo, payload.mensagem);
+        } else if (type === 'REFRESH_NOTIFICACOES') {
+          carregarNotificacoesReais();
+        }
+      };
+
+      return () => {
+        channel.close();
+      };
+    } catch (err) {
+      console.warn('[NotificationContext] Erro ao instanciar BroadcastChannel:', err);
+    }
+  }, [somHabilitado, toast, carregarNotificacoesReais]);
+
+  // Sincroniza notificações entre abas do navegador via StorageEvent (fallback)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
@@ -233,7 +369,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         linkRota: dados.linkRota,
       };
 
-      setNotificacoes((prev) => [nova, ...prev]);
+      setNotificacoes((prev) => {
+        // Evita duplicar notificações com a mesma mensagem recebida nos últimos 5 segundos
+        const duplicada = prev.some(
+          (n) =>
+            n.mensagem === dados.mensagem &&
+            Math.abs(new Date(n.dataHora).getTime() - Date.now()) < 5000
+        );
+        if (duplicada) return prev;
+        return [nova, ...prev];
+      });
 
       // Toca a campainha de recepção 2x se habilitado
       if (tocarSom && somHabilitado) {
@@ -247,18 +392,30 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const marcarComoLida = useCallback((id: string) => {
+    const currentRead = getReadIds();
+    currentRead.add(id);
+    saveReadIds(currentRead);
+
     setNotificacoes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, lida: true } : n))
     );
   }, []);
 
   const marcarTodasComoLidas = useCallback(() => {
+    const currentRead = getReadIds();
+    notificacoes.forEach((n) => currentRead.add(n.id));
+    saveReadIds(currentRead);
+
     setNotificacoes((prev) => prev.map((n) => ({ ...n, lida: true })));
     toast.success('Notificações', 'Todas as notificações foram marcadas como lidas.');
-  }, [toast]);
+  }, [notificacoes, toast]);
 
   const excluirNotificacao = useCallback(
     (id: string) => {
+      const currentRead = getReadIds();
+      currentRead.add(id);
+      saveReadIds(currentRead);
+
       setNotificacoes((prev) => prev.filter((n) => n.id !== id));
       if (notificacaoSelecionada?.id === id) {
         setNotificacaoSelecionada(null);
@@ -268,10 +425,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const limparTodas = useCallback(() => {
+    const currentRead = getReadIds();
+    notificacoes.forEach((n) => currentRead.add(n.id));
+    saveReadIds(currentRead);
+
     setNotificacoes([]);
     setNotificacaoSelecionada(null);
     toast.info('Notificações', 'Histórico de notificações foi limpo.');
-  }, [toast]);
+  }, [notificacoes, toast]);
 
   const lerNotificacao = useCallback(
     (notif: NotificacaoClinica) => {
@@ -353,9 +514,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
           { event: 'INSERT', schema: 'public', table: 'agendamentos' },
           () => {
             carregarNotificacoesReais();
-            if (somHabilitado) {
-              playReceptionBell2x();
-            }
           }
         )
         .on(
@@ -373,7 +531,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.warn('[NotificationContext] Supabase Realtime channel indisponível:', err);
     }
-  }, [adicionarNotificacao]);
+  }, [adicionarNotificacao, carregarNotificacoesReais]);
 
   return (
     <NotificationContext.Provider
@@ -382,6 +540,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         unreadCount,
         somHabilitado,
         notificacaoSelecionada,
+        carregarNotificacoesReais,
         adicionarNotificacao,
         marcarComoLida,
         marcarTodasComoLidas,
@@ -407,7 +566,7 @@ export const useNotifications = () => {
 };
 
 /**
- * Função utilitária global para despachar notificações de qualquer lugar do app
+ * Função utilitária global para despachar notificações de qualquer lugar do app (todas as abas e serviços)
  */
 export function emitirNotificacaoClinica(dados: {
   tipo: NotificacaoTipo;
@@ -428,6 +587,7 @@ export function emitirNotificacaoClinica(dados: {
       linkRota: dados.linkRota,
     };
 
+    // 1. Salva em localStorage
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const list: NotificacaoClinica[] = raw ? JSON.parse(raw) : [];
@@ -442,6 +602,18 @@ export function emitirNotificacaoClinica(dados: {
       // silencioso
     }
 
+    // 2. Dispara BroadcastChannel para todas as abas da aplicação
+    try {
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        bc.postMessage({ type: 'NOVA_NOTIFICACAO', payload: nova });
+        bc.close();
+      }
+    } catch {
+      // silencioso
+    }
+
+    // 3. Dispara CustomEvent local para a aba atual
     window.dispatchEvent(
       new CustomEvent('odonto:notificacao', { detail: dados })
     );

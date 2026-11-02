@@ -140,6 +140,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     unreadCount,
     somHabilitado,
     notificacaoSelecionada,
+    carregarNotificacoesReais,
     marcarComoLida,
     marcarTodasComoLidas,
     excluirNotificacao,
@@ -442,7 +443,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Notifications */}
           <div className="relative" ref={notificationDropdownRef}>
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                const nextState = !showNotifications;
+                setShowNotifications(nextState);
+                if (nextState) {
+                  carregarNotificacoesReais();
+                }
+              }}
               className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-[#005F73] hover:bg-slate-100 transition-colors relative cursor-pointer"
               title="Notificações da Clínica"
               aria-label="Notificações da Clínica"
