@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { AgendaAppointmentItem, AppointmentScheduleStatus } from '../types/agenda';
+import { whatsappNotificationService } from './whatsappNotificationService';
 
 // Validador estrito de formato UUID v4 / v1 para PostgreSQL
 function isValidUUID(value: any): boolean {
@@ -140,19 +141,70 @@ export const agendaService = {
   },
 
   /**
-   * Valida a regra de negócio: Um paciente não pode marcar dois horários no mesmo dia,
-   * a não ser que um horário marcado já esteja com o status de 'Concluído'.
+   * Valida regras clínicas de prevenção estrita de conflitos (Double Booking):
+   * 1. Um paciente NUNCA pode ter dois agendamentos no mesmo horário (sobreposição).
+   * 2. Uma cadeira / consultório NUNCA pode ter dois atendimentos no mesmo horário.
+   * 3. Um paciente não pode marcar dois horários no mesmo dia, a não ser que o horário
+   *    anterior já esteja concluído e o novo horário seja diferente.
    */
   async verificarConflitoDuploAgendamento(
     pacienteNomeOuId: string,
     dateStr: string,
-    currentAgendamentoId?: string
+    currentAgendamentoId?: string,
+    novoHorarioInicio?: Date,
+    novoHorarioFim?: Date
   ): Promise<{ permitido: boolean; motivo?: string }> {
     try {
       if (!pacienteNomeOuId || !dateStr) return { permitido: true };
       const agendamentos = await this.getAgendamentosPorData(dateStr);
-      const cleanSearch = pacienteNomeOuId.toLowerCase().trim();
+      const cleanSearch = (pacienteNomeOuId || '').toLowerCase().trim();
 
+      // Checagem 1: Sobreposição exata de horários (mesmo paciente ou mesmo consultório)
+      if (novoHorarioInicio && novoHorarioFim) {
+        const newStartMs = novoHorarioInicio.getTime();
+        const newEndMs = novoHorarioFim.getTime();
+
+        for (const a of agendamentos) {
+          if (currentAgendamentoId && a.id === currentAgendamentoId) continue;
+          const st = (a.status || '').toLowerCase();
+          // Ignora apenas agendamentos efetivamente cancelados ou desmarcados
+          if (st.includes('cancel') || st.includes('desmarc') || st.includes('falta')) continue;
+
+          let aStartMs: number;
+          let aEndMs: number;
+          if (a.dataHoraInicio) {
+            aStartMs = new Date(a.dataHoraInicio).getTime();
+            aEndMs = a.dataHoraFim ? new Date(a.dataHoraFim).getTime() : aStartMs + 45 * 60000;
+          } else {
+            const [h, m] = (a.time || '09:00').split(':').map(Number);
+            const d = new Date(novoHorarioInicio);
+            d.setHours(h, m, 0, 0);
+            aStartMs = d.getTime();
+            aEndMs = aStartMs + 45 * 60000;
+          }
+
+          // Verificação de colisão de intervalo [start, end]
+          const isOverlap = newStartMs < aEndMs && newEndMs > aStartMs;
+          if (isOverlap) {
+            const matchId = a.pacienteId && a.pacienteId === pacienteNomeOuId;
+            const matchName = a.patientName && a.patientName.toLowerCase().trim() === cleanSearch;
+
+            if (matchId || matchName) {
+              return {
+                permitido: false,
+                motivo: `Conflito Estrito de Horário: O paciente ${a.patientName} já possui um agendamento marcado para as ${a.time}. É expressamente proibido registrar dois agendamentos no mesmo horário.`,
+              };
+            }
+
+            return {
+              permitido: false,
+              motivo: `Horário Indisponível: O horário das ${a.time} já está reservado para outro atendimento na clínica.`,
+            };
+          }
+        }
+      }
+
+      // Checagem 2: Limite de consultas ativas no mesmo dia para o mesmo paciente
       const agendamentosDoPaciente = agendamentos.filter((a) => {
         if (currentAgendamentoId && a.id === currentAgendamentoId) return false;
         const matchId = a.pacienteId && a.pacienteId === pacienteNomeOuId;
@@ -176,7 +228,7 @@ export const agendaService = {
         return {
           permitido: false,
           motivo:
-            'Regra Clínica: O paciente já possui um agendamento ativo nesta data. Não é permitido marcar dois horários no mesmo dia, exceto se a consulta anterior já estiver concluída.',
+            'Regra Clínica: O paciente já possui uma consulta ativa nesta data. Não é permitido marcar dois horários no mesmo dia, exceto se a consulta anterior já estiver concluída.',
         };
       }
 
@@ -218,6 +270,20 @@ export const agendaService = {
         const [h, m] = time.split(':').map(Number);
         startDateTime = new Date(`${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`);
         endDateTime = new Date(startDateTime.getTime() + 45 * 60000);
+      }
+
+      // 1.1 Validação Estrita de Conflito de Horário e Prevenção de Duplo Agendamento
+      const dateOnlyKey = agendamento.date || startDateTime.toISOString().split('T')[0];
+      const conflito = await this.verificarConflitoDuploAgendamento(
+        agendamento.pacienteId || agendamento.patientName || agendamento.pacienteNome || '',
+        dateOnlyKey,
+        agendamento.id,
+        startDateTime,
+        endDateTime
+      );
+
+      if (!conflito.permitido) {
+        throw new Error(conflito.motivo || 'Conflito de agendamento detectado. Não é permitido duplo agendamento no mesmo horário.');
       }
 
       // 2. Resolução dinâmica e segura do paciente_id (Garante UUID válido para o PostgreSQL)
@@ -396,6 +462,7 @@ export const agendaService = {
       }
 
       // 6. Tenta salvar via RPC salvar_agendamento
+      let savedResult: any = null;
       const { data, error } = await supabase.rpc('salvar_agendamento', { p_dados: payload });
       if (error) {
         // Fallback direto na tabela agendamentos
@@ -407,7 +474,7 @@ export const agendaService = {
             .select()
             .single();
           if (updateError) throw updateError;
-          return updated;
+          savedResult = updated;
         } else {
           const { data: inserted, error: insertError } = await supabase
             .from('agendamentos')
@@ -415,10 +482,36 @@ export const agendaService = {
             .select()
             .single();
           if (insertError) throw insertError;
-          return inserted;
+          savedResult = inserted;
         }
+      } else {
+        savedResult = data;
       }
-      return data;
+
+      // 7. Disparo automático garantido da confirmação no WhatsApp para todos os canais (Site, Agenda, Portal)
+      try {
+        const timeStr = `${String(startDateTime.getHours()).padStart(2, '0')}:${String(
+          startDateTime.getMinutes()
+        ).padStart(2, '0')}`;
+        const dateStr = `${startDateTime.getFullYear()}-${String(startDateTime.getMonth() + 1).padStart(
+          2,
+          '0'
+        )}-${String(startDateTime.getDate()).padStart(2, '0')}`;
+
+        whatsappNotificationService.scheduleAppointmentConfirmation({
+          patientName: pName || 'Paciente Odonto Souza',
+          phone: pPhone && pPhone !== '(24) 99999-9999' ? pPhone : undefined,
+          date: dateStr,
+          time: timeStr,
+          procedure: cleanProcName || 'Consulta Odontológica',
+          pacienteId: resolvedPacienteId || undefined,
+          delayMs: 1500,
+        });
+      } catch (waErr: any) {
+        console.warn('[agendaService.saveAgendamento] Erro no agendamento do WhatsApp:', waErr.message);
+      }
+
+      return savedResult;
     } catch (err) {
       console.error('[agendaService.saveAgendamento] Erro:', err);
       throw err;

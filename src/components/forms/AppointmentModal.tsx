@@ -47,14 +47,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
       room: 'Consultório 1'
     });
 
-    // Disparo automático da confirmação no WhatsApp do paciente após 5 segundos
-    whatsappNotificationService.scheduleAppointmentConfirmation({
-      patientName,
-      date,
-      time,
-      procedure,
-      delayMs: 5000,
-    });
+
 
     setIsSuccess(true);
     toast.success('Agendamento criado!', `Consulta para ${patientName} às ${time} agendada com sucesso.`);

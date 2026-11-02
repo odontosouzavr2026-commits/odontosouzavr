@@ -863,3 +863,18 @@ export const brandColors = {
       - **Bloqueio de Agendamento Retroativo:** Continua filtrando horários do dia atual que já transcorreram em relação ao relógio local (`isSlotInThePast`), impedindo reservas no passado.
       - **Acionamento da Reserva com 1 Clique:** Ao clicar sobre o botão do horário desejado, aciona imediatamente o fluxo oficial de agendamento (modal de seleção do procedimento/queixa principal e prosseguimento de identificação), exatamente como fazia o botão *"Reservar Este Horário"*.
       - Aplicado tanto na **Página Institucional** quanto no **Portal do Paciente** (telas de Agendamento e Início).
+  - **Correção Definitiva de Duplo Agendamento (Double-Booking) & Motor de Disparos WhatsApp:**
+    - **Causa Raiz do Duplo Agendamento Identificada e Corrigida:**
+      - Agendamentos via Página Institucional e Portal do Paciente não passavam por validação de sobreposição de horário no serviço central (`agendaService.saveAgendamento`), permitindo que cliques rápidos ou submissões concorrentes gravassem duas consultas no mesmo horário para o mesmo paciente.
+      - Além disso, a validação legada permitia novo agendamento no mesmo horário se o anterior estivesse como "Concluído", gerando dois agendamentos no mesmo horário (09:00 Concluído e 09:00 Confirmado).
+    - **Prevenção Estrita a Nível de Serviço (`agendaService.verificarConflitoDuploAgendamento` e `saveAgendamento`):**
+      - **Bloqueio Absoluto de Sobreposição:** Verificação matemática de intervalo `(newStart < existingEnd && newEnd > existingStart)` para qualquer agendamento não-cancelado. Um paciente NUNCA pode ter duas consultas no mesmo horário, e a mesma cadeira/consultório NUNCA pode ter dois atendimentos sobrepostos.
+      - **Proteção contra Cliques Concorrentes:** Flag de travamento (`isSubmittingBooking`) implementada em `InstitucionalAgendaSection.tsx`, desabilitando o botão durante a submissão e prevenindo disparos múltiplos em milissegundos.
+      - **Limpeza no Banco de Dados Supabase:** Agendamento duplicado foi expurgado com sucesso da tabela `agendamentos`, mantendo apenas o agendamento legítimo e restaurando a integridade da grade da agenda.
+    - **Centralização do Disparo de Confirmação WhatsApp (`tpl-2`):**
+      - O disparo da confirmação imediata foi centralizado diretamente em `agendaService.saveAgendamento`. Qualquer agendamento salvo pelo **Site Institucional**, pela **Agenda do Doutor** ou pela **Área do Paciente** dispara automaticamente a mensagem de confirmação via WhatsApp.
+      - Leitura dinâmica do template oficial ativo em `templateService` com interpolação das variáveis (`{{nome_paciente}}`, `{{data_consulta}}`, `{{hora}}`, `{{procedimento}}`, etc.), respeitando o status de ativação do template e gravando log na trilha de auditoria (`auditoria_logs`).
+    - **Motor de Automações em Segundo Plano (`automationEngine.ts`):**
+      - Criado o serviço `automationEngine` inicializado na raiz da aplicação (`App.tsx`), rodando a cada 60 segundos para monitorar a agenda:
+        - **Lembrete de 2h Antes (`tpl-1`):** Monitora consultas ativas do dia e dispara o template de confirmação rápida (*1 para Confirmar, 2 para Remarcar*) para pacientes na janela de 2 horas (105 a 135 minutos antes da consulta), com flag de envio único em memória para evitar qualquer duplicidade.
+        - **Pesquisa de Satisfação Pós-Atendimento (`tpl-5`):** Monitora consultas concluídas e dispara a pesquisa de NPS.

@@ -276,16 +276,23 @@ export const AgendamentoFormView: React.FC<AgendamentoFormViewProps> = ({
         (p) => p.name.toLowerCase().trim() === finalPatientName.toLowerCase().trim()
       );
 
-    // Validação da Regra de Negócio: Não marcar 2 horários no mesmo dia para o mesmo paciente,
-    // a não ser que um horário anterior já esteja concluído.
+    // Validação Estrita de Conflito de Horário e Duplo Agendamento (Double Booking)
+    const [h, m] = time.split(':').map(Number);
+    const [y, mon, d] = date.split('-').map(Number);
+    const startDateTime = new Date(y, mon - 1, d, h, m, 0);
+    const durationMinutes = matchedProcedimento?.durationMinutes || 45;
+    const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
+
     const conflito = await agendaService.verificarConflitoDuploAgendamento(
       matchedPaciente?.id || finalPatientName,
       date,
-      editingAppointment?.id
+      editingAppointment?.id,
+      startDateTime,
+      endDateTime
     );
 
     if (!conflito.permitido) {
-      toast.warning('Limite de Agendamento por Dia', conflito.motivo || 'O paciente já possui um agendamento para este dia.');
+      toast.warning('Horário Não Permitido', conflito.motivo || 'O paciente já possui um agendamento para este horário.');
       return;
     }
 
@@ -323,16 +330,7 @@ export const AgendamentoFormView: React.FC<AgendamentoFormViewProps> = ({
       notes: notes.trim() || undefined,
     };
 
-    // Disparo automático da confirmação no WhatsApp do paciente após 5 segundos
-    whatsappNotificationService.scheduleAppointmentConfirmation({
-      patientName: finalPatientName,
-      phone: resolvedPhone,
-      date,
-      time,
-      procedure: finalProcedureName,
-      pacienteId: matchedPaciente?.id || editingAppointment?.pacienteId,
-      delayMs: 5000,
-    });
+
 
     // Emite notificação para o painel com campainha de recepção dupla
     emitirNotificacaoClinica({

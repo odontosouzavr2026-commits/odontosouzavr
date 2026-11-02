@@ -156,12 +156,34 @@ export const whatsappNotificationService = {
           return;
         }
 
-        const messageText = buildAppointmentConfirmationMessage({
-          patientName: params.patientName,
-          date: params.date,
-          time: params.time,
-          procedure: params.procedure,
-        });
+        const tpl = templateService.getTemplates().find((t) => t.id === 'tpl-2');
+        if (tpl && !tpl.active) {
+          console.info('[whatsappNotificationService] Template tpl-2 está pausado. Disparo cancelado.');
+          return;
+        }
+
+        const formattedDate = formatAppointmentDate(params.date);
+        let messageText = '';
+
+        if (tpl && tpl.content) {
+          messageText = tpl.content
+            .replace(/\{\{nome_paciente\}\}/gi, params.patientName)
+            .replace(/\{\{primeiro_nome\}\}/gi, params.patientName.split(' ')[0] || params.patientName)
+            .replace(/\{\{data_consulta\}\}/gi, formattedDate)
+            .replace(/\{\{hora\}\}/gi, params.time)
+            .replace(/\{\{procedimento\}\}/gi, params.procedure)
+            .replace(/\{\{dentista\}\}/gi, 'Dr. Frankisney Souza')
+            .replace(/\{\{telefone_clinica\}\}/gi, '(66) 99254-4324')
+            .replace(/\{\{chave_pix_clinica\}\}/gi, 'financeiro@odontosouzavr.com.br')
+            .replace(/\{\{link_fatura\}\}/gi, 'https://app.odontosouzavr.com.br');
+        } else {
+          messageText = buildAppointmentConfirmationMessage({
+            patientName: params.patientName,
+            date: params.date,
+            time: params.time,
+            procedure: params.procedure,
+          });
+        }
 
         // Envio real via Evolution API
         await evolutionApiService.sendTextMessage(phone, messageText);
@@ -177,6 +199,17 @@ export const whatsappNotificationService = {
           status: 'sent',
           channel: 'evolution_api',
         });
+
+        // Grava auditoria permanente no Supabase
+        try {
+          await supabase.from('auditoria_logs').insert({
+            entidade: 'agendamentos',
+            acao: 'DISPARO_WHATSAPP_CONFIRMACAO',
+            detalhes: `Confirmação de agendamento (tpl-2) enviada via WhatsApp para ${params.patientName} (${phone}) - ${params.date} às ${params.time}.`,
+          });
+        } catch (e) {
+          // silencioso
+        }
 
         // Atualiza métricas
         const metrics = templateService.getMetrics();
@@ -259,7 +292,28 @@ export const whatsappNotificationService = {
         return false;
       }
 
-      const msg = build2HourReminderMessage(params);
+      const tpl = templateService.getTemplates().find((t) => t.id === 'tpl-1');
+      if (tpl && !tpl.active) {
+        console.info('[whatsappNotificationService] Template tpl-1 está pausado. Disparo cancelado.');
+        return false;
+      }
+
+      const formattedDate = formatAppointmentDate(params.date);
+      const dentistName = params.dentist || 'Dr. Frankisney Souza';
+      let msg = '';
+
+      if (tpl && tpl.content) {
+        msg = tpl.content
+          .replace(/\{\{nome_paciente\}\}/gi, params.patientName)
+          .replace(/\{\{primeiro_nome\}\}/gi, params.patientName.split(' ')[0] || params.patientName)
+          .replace(/\{\{data_consulta\}\}/gi, formattedDate)
+          .replace(/\{\{hora\}\}/gi, params.time)
+          .replace(/\{\{dentista\}\}/gi, dentistName)
+          .replace(/\{\{telefone_clinica\}\}/gi, '(66) 99254-4324');
+      } else {
+        msg = build2HourReminderMessage(params);
+      }
+
       await evolutionApiService.sendTextMessage(phone, msg);
 
       templateService.logDispatch({
@@ -272,6 +326,15 @@ export const whatsappNotificationService = {
         status: 'sent',
         channel: 'evolution_api',
       });
+
+      // Grava auditoria permanente no Supabase
+      try {
+        await supabase.from('auditoria_logs').insert({
+          entidade: 'agendamentos',
+          acao: 'DISPARO_WHATSAPP_LEMBRETE_2H',
+          detalhes: `Lembrete 2h antes (tpl-1) entregue para ${params.patientName} (${phone}) - Consulta às ${params.time}.`,
+        });
+      } catch (e) {}
 
       const metrics = templateService.getMetrics();
       metrics.sentToday = (metrics.sentToday || 0) + 1;
@@ -397,6 +460,47 @@ export const whatsappNotificationService = {
       );
 
       return { handled: true, replySent: reply, actionTaken: 'remarcacao_solicitada' };
+    }
+  },
+
+  /**
+   * Disparo genérico para outros templates automatizados (ex: NPS, Boas-Vindas)
+   */
+  async dispatchCustomText(
+    phone: string,
+    text: string,
+    meta: { templateId: string; templateName: string; recipientName: string }
+  ): Promise<boolean> {
+    try {
+      await evolutionApiService.sendTextMessage(phone, text);
+
+      templateService.logDispatch({
+        id: `dsp-${Date.now()}`,
+        templateId: meta.templateId,
+        templateName: meta.templateName,
+        recipientName: meta.recipientName,
+        phone,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+        channel: 'evolution_api',
+      });
+
+      const metrics = templateService.getMetrics();
+      metrics.sentToday = (metrics.sentToday || 0) + 1;
+      localStorage.setItem('odonto_whatsapp_metrics_v2', JSON.stringify(metrics));
+
+      try {
+        await supabase.from('auditoria_logs').insert({
+          entidade: 'agendamentos',
+          acao: 'DISPARO_WHATSAPP_AUTOMATICO',
+          detalhes: `${meta.templateName} (${meta.templateId}) entregue para ${meta.recipientName} (${phone}).`,
+        });
+      } catch (e) {}
+
+      return true;
+    } catch (err: any) {
+      console.warn('[whatsappNotificationService.dispatchCustomText] Erro:', err.message);
+      return false;
     }
   },
 };

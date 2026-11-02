@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { PacienteItem } from '../types/pacientes';
+import { agendaService } from './agendaService';
 
 export interface PacientePortalData {
   id: string;
@@ -561,32 +562,30 @@ export const pacientePortalService = {
     notes?: string;
   }): Promise<boolean> {
     try {
-      // Calcula data e hora ISO
       const parts = booking.time.split(':');
       const hour = parseInt(parts[0], 10) || 9;
       const min = parseInt(parts[1], 10) || 0;
 
-      const startDate = new Date();
-      startDate.setHours(hour, min, 0, 0);
+      const dateStr = booking.date.includes('/')
+        ? booking.date.split('/').reverse().join('-')
+        : booking.date;
 
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const startDate = new Date(y, m - 1, d, hour, min, 0);
       const endDate = new Date(startDate.getTime() + 45 * 60 * 1000); // 45 min duração
 
-      const payload = {
-        paciente_id: booking.pacienteId,
-        dentista_id: '20000000-0000-0000-0000-000000000001', // Dr. Frankisney
-        cadeira_id: '10000000-0000-0000-0000-000000000001',
-        data_hora_inicio: startDate.toISOString(),
-        data_hora_fim: endDate.toISOString(),
+      await agendaService.saveAgendamento({
+        pacienteId: booking.pacienteId,
+        patientName: booking.patientName,
+        date: dateStr,
+        time: booking.time,
+        dataHoraInicio: startDate.toISOString(),
+        dataHoraFim: endDate.toISOString(),
+        procedure: booking.type,
         status: 'Confirmado',
         tipo: booking.type.includes('Urgência') ? 'Encaixe' : 'Consulta',
         observacoes: `Solicitado via Portal do Paciente: ${booking.type}. ${booking.notes || ''}`,
-      };
-
-      const { error } = await supabase.from('agendamentos').insert(payload);
-
-      if (error) {
-        console.warn('[pacientePortalService.criarAgendamentoReal] Erro insert:', error.message);
-      }
+      });
 
       // Trilha de auditoria
       try {
@@ -594,16 +593,15 @@ export const pacientePortalService = {
           entidade: 'agendamentos',
           acao: 'AUTO_AGENDAMENTO_PORTAL',
           detalhes: `Paciente ${booking.patientName} realizou pré-agendamento para ${booking.date} às ${booking.time}.`,
-          dados_novos: payload,
         });
       } catch (e) {
         // silencioso
       }
 
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[pacientePortalService.criarAgendamentoReal] Exceção:', err);
-      return false;
+      throw err;
     }
   },
 

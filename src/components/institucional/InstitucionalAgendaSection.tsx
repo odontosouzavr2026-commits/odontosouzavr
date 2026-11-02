@@ -151,6 +151,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
   const [cpfError, setCpfError] = useState(false);
   const [cpfErrorMessage, setCpfErrorMessage] = useState('');
   const { loading: cepLoading, error: cepError, errorMessage: cepErrorMessage, lookupCep, clearCepError } = useViaCep();
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
 
   // Carrega convênios ativos para o formulário de cadastro
   useEffect(() => {
@@ -585,9 +586,11 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
     setIsAuthModalOpen(true);
   };
 
-  // Executa a gravação do agendamento real no banco de dados Supabase
-  const executeFinalBooking = async (userToBook: { id?: string; email?: string; name: string }) => {
+  // Executa a gravação do agendamento real no banco de dados Supabase com bloqueio estrito de concorrência
+  const executeFinalBooking = async (userToBook: { id?: string; email?: string; name: string; whatsapp?: string; telefone?: string }) => {
     if (!selectedSlot) return;
+    if (isSubmittingBooking) return;
+    setIsSubmittingBooking(true);
 
     try {
       const dateKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(
@@ -597,11 +600,15 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
       const startDateTime = `${dateKey}T${selectedSlot.time}:00`;
       const endDateTime = `${dateKey}T${selectedSlot.endTime}:00`;
 
-      // 1. Salva via agendaService com vínculo ao procedimento cadastrado
+      const resolvedPhone = (userToBook as any).whatsapp || (userToBook as any).telefone || (userToBook as any).phone || regWhatsapp.trim() || undefined;
+
+      // 1. Salva via agendaService com validação estrita de duplo agendamento e disparo automático de WhatsApp
       await agendaService.saveAgendamento({
         pacienteId: userToBook.id || undefined,
         pacienteNome: userToBook.name || 'Paciente Odonto Souza',
         pacienteEmail: userToBook.email || undefined,
+        pacienteTelefone: resolvedPhone,
+        phone: resolvedPhone,
         patientName: userToBook.name || 'Paciente Odonto Souza',
         procedure: selectedProcedure,
         procedimentoId: selectedProcedureId || undefined,
@@ -625,6 +632,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
         titulo: 'Novo Agendamento via Site Institucional 🦷✨',
         mensagem: `${userToBook.name} agendou ${selectedProcedure} para ${formattedSelectedDate} às ${selectedSlot.time}.`,
         pacienteNome: userToBook.name,
+        pacienteTelefone: resolvedPhone || '',
         dataHora: `${formattedSelectedDate} às ${selectedSlot.time}`,
         procedimento: selectedProcedure,
         canalOrigem: 'Site Institucional (Home)',
@@ -642,13 +650,15 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
       );
     } catch (err: any) {
       console.error('[InstitucionalAgenda] Erro ao gravar agendamento:', err);
-      toast.error('Erro ao agendar', err?.message || 'Não foi possível confirmar o agendamento. Tente novamente.');
+      toast.error('Não foi possível agendar', err?.message || 'Horário indisponível ou já agendado.');
+    } finally {
+      setIsSubmittingBooking(false);
     }
   };
 
   // Confirmação quando o paciente já está logado
   const handleConfirmDirect = () => {
-    if (!currentUser) return;
+    if (!currentUser || isSubmittingBooking) return;
     executeFinalBooking(currentUser);
   };
 
@@ -1213,13 +1223,16 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
               </button>
               <button
                 type="button"
+                disabled={isSubmittingBooking}
                 onClick={isPatientUser && currentUser ? handleConfirmDirect : handleProceedFromConfirm}
-                className="flex-1 py-3 rounded-xl bg-[#005F73] hover:bg-[#004756] text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className={`flex-1 py-3 rounded-xl bg-[#005F73] hover:bg-[#004756] text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  isSubmittingBooking ? 'opacity-60 cursor-not-allowed' : ''
+                }`}
               >
                 {isPatientUser && currentUser ? (
                   <>
                     <Check className="w-4 h-4 text-[#94D2BD]" />
-                    <span>Confirmar Agendamento</span>
+                    <span>{isSubmittingBooking ? 'Confirmando...' : 'Confirmar Agendamento'}</span>
                   </>
                 ) : (
                   <>

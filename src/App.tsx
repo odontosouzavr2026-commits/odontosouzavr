@@ -29,6 +29,7 @@ import { LoginView } from './components/auth/LoginView';
 import { InstitucionalView } from './components/institucional/InstitucionalView';
 import { PacienteItem } from './types/pacientes';
 import { scrollToTop } from './utils/scrollUtils';
+import { automationEngine } from './services/automationEngine';
 
 interface AuthUser {
   name: string;
@@ -88,6 +89,14 @@ export default function App() {
   useEffect(() => {
     scrollToTop();
   }, [activePath, currentRoute]);
+
+  // Inicializa o motor de automações do WhatsApp (lembretes de 2h, NPS, etc.)
+  useEffect(() => {
+    automationEngine.start();
+    return () => {
+      automationEngine.stop();
+    };
+  }, []);
 
   // Sincroniza com histórico do navegador para suportar /, /minhaconta e /paineladmin
   useEffect(() => {
