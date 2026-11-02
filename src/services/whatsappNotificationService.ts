@@ -63,7 +63,7 @@ export const build2HourReminderMessage = (params: {
 }): string => {
   const formattedDate = formatAppointmentDate(params.date);
   const dentistName = params.dentist || 'Dr. Frankisney Souza';
-  return `Olá *${params.patientName}*! Lembramos da sua consulta com *${dentistName}* hoje, dia *${formattedDate}* às *${params.time}*. Por favor, responda 1 para CONFIRMAR ou 2 para REMARCAR.`;
+  return `Olá *${params.patientName}*! Lembramos da sua consulta com *${dentistName}* no dia *${formattedDate}* às *${params.time}* na clínica Odonto Souza.\n\nPor favor, responda:\n*1* para *CONFIRMAR*\n*2* para *REMARCAR*`;
 };
 
 /**
@@ -315,22 +315,8 @@ export const whatsappNotificationService = {
         msg = build2HourReminderMessage(params);
       }
 
-      // Tenta enviar com botões interativos oficiais da clínica (SIM / NÃO)
-      try {
-        await evolutionApiService.sendButtons(
-          phone,
-          'Odonto Souza • Confirmação de Consulta 🦷',
-          msg,
-          [
-            { id: 'btn_confirmar', displayText: 'SIM' },
-            { id: 'btn_cancelar', displayText: 'NÃO' },
-          ],
-          'Odonto Souza Odontologia Especializada'
-        );
-      } catch (btnErr) {
-        console.warn('[whatsappNotificationService] Fallback para texto simples:', btnErr);
-        await evolutionApiService.sendTextMessage(phone, msg);
-      }
+      // Envio universal por texto formatado (1 para CONFIRMAR, 2 para REMARCAR) compatível com WhatsApp Web, Desktop e Celulares
+      await evolutionApiService.sendTextMessage(phone, msg);
 
       templateService.logDispatch({
         id: `dsp-${Date.now()}`,

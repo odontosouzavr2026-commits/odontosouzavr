@@ -955,8 +955,8 @@ export const brandColors = {
       - Prevenção total de duplicação: filtra agendamentos que já possuem registro de envio (`tpl-1`) em `public.auditoria_logs` nas últimas 24 horas.
     - **Workflow n8n Outbound Dedicado (`PKdcdrCDBEq5JNYi`):**
       - Agendamento cron ativo executando a cada 1 minuto com fuso horário `America/Sao_Paulo`.
-      - Consulta direta via SQL na API do Supabase (`/pg/query`), extrai agendamentos elegíveis e monta mensagem oficial da clínica com botões interativos `[ SIM ]` e `[ NÃO ]`.
-      - Disparo automático via Evolution API (`/message/sendButtons/atendimento`).
+      - Consulta direta via SQL na API do Supabase (`/pg/query`), extrai agendamentos elegíveis e monta mensagem oficial da clínica instruindo resposta por texto (`1 para CONFIRMAR` ou `2 para REMARCAR`).
+      - Disparo automático via Evolution API (`/message/sendText/atendimento`) com 100% de compatibilidade em WhatsApp Web, Desktop e Celulares, eliminando a falha nativa do WhatsApp Web com botões Baileys ("Não foi possível carregar a mensagem").
       - Registro automático de auditoria em `public.auditoria_logs` garantindo rastreabilidade e idempotência estrita.
       - Totalmente autônomo, funcionando 24 horas por dia na VPS sem dependência de aba de navegador aberta.
       1) Emissão redundante inline no formulário (`AgendamentoFormView.tsx` / `NovoAgendamentoModal.tsx`);
