@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { ToothIcon } from '../common/ToothIcon';
 import { InstitucionalAgendaSection } from './InstitucionalAgendaSection';
+import { avaliacoesService, FALLBACK_AVALIACOES } from '../../services/avaliacoesService';
+import { AvaliacaoItem } from '../../types/avaliacoes';
 
 interface InstitucionalViewProps {
   currentUser?: {
@@ -48,6 +50,34 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
   const [activeSection, setActiveSection] = useState('home');
   const [isScrolled, setIsScrolled] = useState(false);
   const [modalLegal, setModalLegal] = useState<'termos' | 'privacidade' | null>(null);
+  const [avaliacoesList, setAvaliacoesList] = useState<AvaliacaoItem[]>(FALLBACK_AVALIACOES);
+
+  // Carrega avaliações reais e verificadas do Supabase
+  useEffect(() => {
+    let isMounted = true;
+    avaliacoesService.getAvaliacoesDestaque().then((items) => {
+      if (isMounted && items && items.length > 0) {
+        setAvaliacoesList(items);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const getTempoRelativo = (criadoEm?: string) => {
+    if (!criadoEm) return 'Recentemente';
+    const diffMs = Date.now() - new Date(criadoEm).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return 'Hoje';
+    if (diffDays === 1) return 'Ontem';
+    if (diffDays < 7) return `Há ${diffDays} dias`;
+    const weeks = Math.floor(diffDays / 7);
+    if (weeks < 4) return `Há ${weeks} ${weeks === 1 ? 'semana' : 'semanas'}`;
+    const months = Math.floor(diffDays / 30);
+    if (months < 12) return `Há ${months} ${months === 1 ? 'mês' : 'meses'}`;
+    return 'Há mais de 1 ano';
+  };
 
   // Efeito de sombra e background no header ao rolar a página
   useEffect(() => {
@@ -127,49 +157,6 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
       icone: HeartHandshake,
       destaque: 'Pós-Operatório Acompanhado',
       duracao: 'Recuperação Rápida',
-    },
-  ];
-
-  const avaliacoes = [
-    {
-      id: 1,
-      nome: 'Beatriz Fagundes Silveira',
-      tempo: 'Há 1 semana',
-      estrelas: 5,
-      comentario:
-        'Experiência maravilhosa! Eu tinha muito pavor de ir ao dentista por traumas antigos, mas o Dr. Frankisney me atendeu com tanta calma e sem dor nenhuma. Fiz uma restauração e clareamento, ficou perfeito!',
-      procedimento: 'Estética Dental & Clareamento',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 2,
-      nome: 'Eduardo Prado Ribeiro',
-      tempo: 'Há 3 semanas',
-      estrelas: 5,
-      comentario:
-        'Pontualidade impecável, você é atendido exatamente no seu horário agendado de 45 minutos. O consultório é extremamente limpo e a esterilização dos materiais passa muita confiança.',
-      procedimento: 'Implante & Revisão Preventiva',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 3,
-      nome: 'Mariana Alcântara Costa',
-      tempo: 'Há 1 mês',
-      estrelas: 5,
-      comentario:
-        'O Convênio da Casa sem mensalidade me surpreendeu muito. Consegui fazer o tratamento ortodôntico e da minha filha com preços justos e direto na clínica. O atendimento pelo WhatsApp também é super ágil!',
-      procedimento: 'Ortodontia & Convênio da Casa',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-    },
-    {
-      id: 4,
-      nome: 'Rodrigo Mendes Cavalcanti',
-      tempo: 'Há 2 meses',
-      estrelas: 5,
-      comentario:
-        'Fiz canal com o Dr. Frankisney e não senti absolutamente nada durante o procedimento. A tecnologia do consultório é de outro nível. Recomendo de olhos fechados para toda a minha família!',
-      procedimento: 'Endodontia Mecanizada',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
     },
   ];
 
@@ -780,9 +767,9 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
             </div>
           </div>
 
-          {/* Grid de Depoimentos */}
+          {/* Grid de Depoimentos Reais dos Pacientes */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {avaliacoes.map((av) => (
+            {avaliacoesList.map((av) => (
               <div
                 key={av.id}
                 className="bg-[#F8F9FA] rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200"
@@ -790,7 +777,7 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
                 <div className="space-y-3">
                   {/* Estrelas */}
                   <div className="flex items-center gap-1 text-[#EE9B00]">
-                    {[...Array(av.estrelas)].map((_, i) => (
+                    {[...Array(Math.max(1, Math.min(5, av.nota || 5)))].map((_, i) => (
                       <Star key={i} className="w-4 h-4 fill-[#EE9B00]" />
                     ))}
                   </div>
@@ -803,15 +790,26 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
 
                 {/* Paciente */}
                 <div className="pt-4 mt-4 border-t border-slate-200/60 flex items-center gap-3">
-                  <img
-                    src={av.avatar}
-                    alt={av.nome}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-300"
-                  />
+                  {av.foto_url ? (
+                    <img
+                      src={av.foto_url}
+                      alt={av.nome_paciente}
+                      className="w-10 h-10 rounded-full object-cover border border-slate-300"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#005F73]/10 text-[#005F73] font-bold text-xs flex items-center justify-center border border-[#005F73]/20 shrink-0">
+                      {av.nome_paciente.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 truncate">{av.nome}</p>
-                    <p className="text-[11px] text-[#005F73] font-semibold truncate">{av.procedimento}</p>
-                    <span className="text-[10px] text-slate-400">{av.tempo}</span>
+                    <p className="text-xs font-bold text-slate-900 truncate">{av.nome_paciente}</p>
+                    <p className="text-[11px] text-[#005F73] font-semibold truncate">
+                      {av.canal === 'whatsapp' ? 'Avaliação via WhatsApp' : 'Paciente Verificado'}
+                    </p>
+                    <span className="text-[10px] text-slate-400">{getTempoRelativo(av.criado_em)}</span>
                   </div>
                 </div>
               </div>

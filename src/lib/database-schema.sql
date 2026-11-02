@@ -274,6 +274,21 @@ CREATE TABLE IF NOT EXISTS public.auditoria_logs (
     criado_em TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Tabela 18: Avaliações dos Pacientes (NPS & Testemunhos)
+CREATE TABLE IF NOT EXISTS public.avaliacoes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agendamento_id UUID REFERENCES public.agendamentos(id) ON DELETE SET NULL,
+    paciente_id UUID REFERENCES public.pacientes(id) ON DELETE SET NULL,
+    nome_paciente VARCHAR(150) NOT NULL,
+    foto_url TEXT,
+    nota INTEGER NOT NULL CHECK (nota >= 1 AND nota <= 5),
+    comentario TEXT,
+    canal VARCHAR(30) DEFAULT 'whatsapp',
+    destaque_site BOOLEAN DEFAULT false,
+    criado_em TIMESTAMPTZ DEFAULT NOW(),
+    atualizado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =========================================================================
 -- 3. ÍNDICES DE ALTA PERFORMANCE
 -- =========================================================================
@@ -290,6 +305,9 @@ CREATE INDEX IF NOT EXISTS idx_auditoria_criado_em ON public.auditoria_logs(cria
 CREATE INDEX IF NOT EXISTS idx_auditoria_usuario ON public.auditoria_logs(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_auditoria_entidade ON public.auditoria_logs(entidade, entidade_id);
 CREATE INDEX IF NOT EXISTS idx_auditoria_acao ON public.auditoria_logs(acao);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_destaque ON public.avaliacoes(destaque_site, criado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_paciente ON public.avaliacoes(paciente_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_agendamento ON public.avaliacoes(agendamento_id);
 
 -- =========================================================================
 -- 4. POLÍTICAS DE ROW LEVEL SECURITY (RLS)
@@ -311,6 +329,7 @@ ALTER TABLE public.estoque_movimentacoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ciclos_autoclave ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ordens_laboratorio ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.auditoria_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.avaliacoes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Acesso Global para a Clínica (Single-Tenant Odonto Souza)
 DO $$
@@ -326,7 +345,7 @@ BEGIN
             'procedimentos', 'agendamentos', 'evolucoes_prontuario', 
             'odontograma_itens', 'orcamentos', 'orcamento_itens', 
             'transacoes_financeiras', 'estoque_materiais', 'estoque_movimentacoes', 
-            'ciclos_autoclave', 'ordens_laboratorio', 'auditoria_logs'
+            'ciclos_autoclave', 'ordens_laboratorio', 'auditoria_logs', 'avaliacoes'
         )
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS "Acesso_Geral_OdontoSouza" ON public.%I', t);

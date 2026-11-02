@@ -921,3 +921,18 @@ export const brandColors = {
       - **Acesso Autenticado:** Se o usuário já estiver logado como paciente, abre a Área do Paciente (`/minhaconta`); se for da equipe (Dr. Frankisney, recepção, financeiro), abre direto o Dashboard administrativo (`AppLayout`).
       - **Voltar ao Site:** Clicar em "Voltar para o site da clínica" no login do app redireciona para o domínio institucional público (`https://odontosouzavr.com.br`).
       - **Logout:** Permanece no subdomínio do app exibindo a tela de login.
+  - **Módulo de Avaliações dos Pacientes (`avaliacoes`) & Testemunhos Dinâmicos no Site:**
+    - **Criação da Tabela `public.avaliacoes` no Supabase Self-Hosted:**
+      - Campos estruturados e tipados: `id` (UUID, PK), `agendamento_id` (FK `agendamentos`), `paciente_id` (FK `pacientes`), `nome_paciente` (VARCHAR 150), `foto_url` (TEXT), `nota` (INTEGER de 1 a 5 com check constraint), `comentario` (TEXT), `canal` (VARCHAR, default 'whatsapp'), `destaque_site` (BOOLEAN, default false), `criado_em` (TIMESTAMPTZ) e `atualizado_em` (TIMESTAMPTZ).
+      - Índices de alta performance: `idx_avaliacoes_destaque` (`destaque_site, criado_em DESC`), `idx_avaliacoes_paciente` e `idx_avaliacoes_agendamento`.
+      - RLS habilitado com políticas para leitura pública anônima de avaliações em destaque (`destaque_site = true`) e controle total para usuários autenticados e `service_role`.
+    - **Funções RPC Canônicas Registradas no Banco:**
+      - `obter_avaliacoes_destaque()`: retorna os depoimentos ativos para a vitrine pública.
+      - `obter_todas_avaliacoes()`: listagem completa para gestão administrativa e moderação.
+      - `salvar_avaliacao(p_dados JSONB)`: upsert seguro de novas notas e feedbacks recebidos via WhatsApp ou pós-consulta.
+      - `toggle_destaque_avaliacao(p_id UUID, p_destaque BOOLEAN)`: permite aprovar/remover um depoimento da página inicial.
+    - **Camada de Serviço Frontend (`src/services/avaliacoesService.ts` & `src/types/avaliacoes.ts`):**
+      - Métodos assíncronos tipados com fallback defensivo para garantir disponibilidade contínua mesmo sob oscilações de rede.
+    - **Renderização Dinâmica na Página Institucional (`InstitucionalView.tsx`):**
+      - Substituição dos depoimentos estáticos por consumo reativo do Supabase.
+      - Exibição com avatares dos pacientes, estrelas douradas de 1 a 5, selo de paciente verificado e tempo relativo amigável ("Há 1 semana", "Há 3 dias", "Hoje").

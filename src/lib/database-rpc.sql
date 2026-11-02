@@ -557,17 +557,6 @@ BEGIN
         permissoes = EXCLUDED.permissoes,
         atualizado_em = NOW()
     RETURNING * INTO v_user;
-        nome = EXCLUDED.nome,
-        telefone = EXCLUDED.telefone,
-        funcao = EXCLUDED.funcao,
-        cro = EXCLUDED.cro,
-        perfil_id = EXCLUDED.perfil_id,
-        perfil_nome = EXCLUDED.perfil_nome,
-        cadeira_id = EXCLUDED.cadeira_id,
-        status = EXCLUDED.status,
-        permissoes = EXCLUDED.permissoes,
-        atualizado_em = NOW()
-    RETURNING * INTO v_user;
 
     RETURN v_user;
 END;
@@ -1016,6 +1005,85 @@ BEGIN
         'success', false,
         'error', 'Usuário não encontrado. Crie seu cadastro para continuar.'
     );
+END;
+$$;
+
+-- =========================================================================
+-- 15. MÓDULO AVALIAÇÕES (NPS & FEEDBACKS DOS PACIENTES)
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.obter_avaliacoes_destaque()
+RETURNS SETOF public.avaliacoes
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT * FROM public.avaliacoes
+    WHERE destaque_site = true
+    ORDER BY criado_em DESC
+    LIMIT 12;
+$$;
+
+CREATE OR REPLACE FUNCTION public.obter_todas_avaliacoes()
+RETURNS SETOF public.avaliacoes
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT * FROM public.avaliacoes
+    ORDER BY criado_em DESC;
+$$;
+
+CREATE OR REPLACE FUNCTION public.salvar_avaliacao(p_dados JSONB)
+RETURNS public.avaliacoes
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_avaliacao public.avaliacoes;
+    v_id UUID;
+BEGIN
+    v_id := COALESCE((p_dados->>'id')::UUID, gen_random_uuid());
+
+    INSERT INTO public.avaliacoes (
+        id, agendamento_id, paciente_id, nome_paciente, foto_url,
+        nota, comentario, canal, destaque_site, criado_em, atualizado_em
+    ) VALUES (
+        v_id,
+        (p_dados->>'agendamento_id')::UUID,
+        (p_dados->>'paciente_id')::UUID,
+        p_dados->>'nome_paciente',
+        p_dados->>'foto_url',
+        COALESCE((p_dados->>'nota')::INTEGER, 5),
+        p_dados->>'comentario',
+        COALESCE(p_dados->>'canal', 'whatsapp'),
+        COALESCE((p_dados->>'destaque_site')::BOOLEAN, false),
+        COALESCE((p_dados->>'criado_em')::TIMESTAMPTZ, NOW()),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        nota = EXCLUDED.nota,
+        comentario = EXCLUDED.comentario,
+        destaque_site = EXCLUDED.destaque_site,
+        foto_url = COALESCE(EXCLUDED.foto_url, public.avaliacoes.foto_url),
+        atualizado_em = NOW()
+    RETURNING * INTO v_avaliacao;
+
+    RETURN v_avaliacao;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.toggle_destaque_avaliacao(p_id UUID, p_destaque BOOLEAN)
+RETURNS public.avaliacoes
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_avaliacao public.avaliacoes;
+BEGIN
+    UPDATE public.avaliacoes
+    SET destaque_site = p_destaque, atualizado_em = NOW()
+    WHERE id = p_id
+    RETURNING * INTO v_avaliacao;
+
+    RETURN v_avaliacao;
 END;
 $$;
 
