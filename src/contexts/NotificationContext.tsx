@@ -37,6 +37,8 @@ const NotificationContext = createContext<NotificationContextData>(
 const STORAGE_KEY = 'odonto_clinica_notificacoes_v2';
 const SOUND_STORAGE_KEY = 'odonto_notificacoes_som_habilitado';
 const READ_STORAGE_KEY = 'odonto_notificacoes_lidas_ids_v2';
+const DELETED_STORAGE_KEY = 'odonto_notificacoes_deleted_ids_v2';
+const CLEARED_AT_STORAGE_KEY = 'odonto_notificacoes_cleared_at_v2';
 const BROADCAST_CHANNEL_NAME = 'odonto_clinica_notifications_channel_v2';
 
 // Helper para ler IDs lidos do localStorage
@@ -46,6 +48,44 @@ function getReadIds(): Set<string> {
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch {
     return new Set();
+  }
+}
+
+// Helper para ler IDs excluídos do localStorage
+function getDeletedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Helper para salvar IDs excluídos no localStorage
+function saveDeletedIds(ids: Set<string>): void {
+  try {
+    localStorage.setItem(DELETED_STORAGE_KEY, JSON.stringify(Array.from(ids)));
+  } catch {
+    // silencioso
+  }
+}
+
+// Helper para ler o timestamp de quando o usuário limpou o histórico
+function getClearedAt(): number {
+  try {
+    const raw = localStorage.getItem(CLEARED_AT_STORAGE_KEY);
+    return raw ? parseInt(raw, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Helper para salvar o timestamp de limpeza do histórico
+function saveClearedAt(timestamp: number): void {
+  try {
+    localStorage.setItem(CLEARED_AT_STORAGE_KEY, String(timestamp));
+  } catch {
+    // silencioso
   }
 }
 
@@ -81,13 +121,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [notificacoes, setNotificacoes] = useState<NotificacaoClinica[]>(() => {
     try {
+      const deletedIds = getDeletedIds();
+      const clearedAt = getClearedAt();
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Remove permanentemente quaisquer notificações mock legadas
+          // Remove notificações excluídas ou anteriores ao momento em que o histórico foi limpo
           return parsed.filter(
             (n: any) =>
+              !deletedIds.has(n.id) &&
+              (clearedAt === 0 || new Date(n.dataHora).getTime() > clearedAt) &&
               n.id !== 'notif-1' &&
               !n.mensagem?.includes('Sábado às 10:00') &&
               !n.detalhes?.dataConsulta?.includes('Próximo Sábado')
@@ -119,6 +163,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   const carregarNotificacoesReais = useCallback(async () => {
     try {
       const readIds = getReadIds();
+      const deletedIds = getDeletedIds();
+      const clearedAt = getClearedAt();
 
       // 1. Busca agendamentos recentes ordenados por criação
       const { data: ags, error: agsError } = await supabase
@@ -147,6 +193,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
       const notificacoesAgendamentos: NotificacaoClinica[] = [];
       if (!agsError && ags && ags.length > 0) {
         ags.forEach((ag: any) => {
+          const notifId = `notif-ag-${ag.id}`;
+          // Se foi individualmente excluído pelo usuário, não reexibe
+          if (deletedIds.has(notifId)) return;
+
+          // Se o usuário limpou o histórico e esta notificação é anterior à limpeza, não reexibe
+          const notifTime = new Date(ag.criado_em || ag.data_hora_inicio).getTime();
+          if (clearedAt > 0 && notifTime <= clearedAt) return;
+
           const startDate = new Date(ag.data_hora_inicio);
           const timeStr = startDate.toLocaleTimeString('pt-BR', {
             hour: '2-digit',
@@ -171,7 +225,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             procNome = ag.tipo || 'Avaliação Gratuita';
           }
 
-          const notifId = `notif-ag-${ag.id}`;
           notificacoesAgendamentos.push({
             id: notifId,
             tipo: 'novo_agendamento',
@@ -203,6 +256,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!pacsError && pacs && pacs.length > 0) {
         pacs.forEach((pac: any) => {
           const notifId = `notif-pac-${pac.id}`;
+          if (deletedIds.has(notifId)) return;
+
+          const notifTime = new Date(pac.criado_em || new Date().toISOString()).getTime();
+          if (clearedAt > 0 && notifTime <= clearedAt) return;
+
           notificacoesPacientes.push({
             id: notifId,
             tipo: 'novo_cadastro',
@@ -244,6 +302,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         const manuais = prev.filter(
           (n) =>
             !idsExistentes.has(n.id) &&
+            !deletedIds.has(n.id) &&
+            (clearedAt === 0 || new Date(n.dataHora).getTime() > clearedAt) &&
             !n.id.startsWith('notif-ag-') &&
             !n.id.startsWith('notif-pac-') &&
             n.id !== 'notif-1' &&
@@ -330,6 +390,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         } else if (type === 'REFRESH_NOTIFICACOES') {
           carregarNotificacoesReais();
+        } else if (type === 'LIMPAR_NOTIFICACOES') {
+          setNotificacoes([]);
+          setNotificacaoSelecionada(null);
+        } else if (type === 'EXCLUIR_NOTIFICACAO' && payload?.id) {
+          setNotificacoes((prev) => prev.filter((n) => n.id !== payload.id));
         }
       };
 
@@ -454,25 +519,72 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const excluirNotificacao = useCallback(
     (id: string) => {
+      const currentDeleted = getDeletedIds();
+      currentDeleted.add(id);
+      saveDeletedIds(currentDeleted);
+
       const currentRead = getReadIds();
       currentRead.add(id);
       saveReadIds(currentRead);
 
-      setNotificacoes((prev) => prev.filter((n) => n.id !== id));
+      setNotificacoes((prev) => {
+        const updated = prev.filter((n) => n.id !== id);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // silencioso
+        }
+        return updated;
+      });
+
       if (notificacaoSelecionada?.id === id) {
         setNotificacaoSelecionada(null);
+      }
+
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+          channel.postMessage({ type: 'EXCLUIR_NOTIFICACAO', payload: { id } });
+          channel.close();
+        } catch {
+          // silencioso
+        }
       }
     },
     [notificacaoSelecionada]
   );
 
   const limparTodas = useCallback(() => {
+    const now = Date.now();
+    saveClearedAt(now);
+
+    const currentDeleted = getDeletedIds();
+    notificacoes.forEach((n) => currentDeleted.add(n.id));
+    saveDeletedIds(currentDeleted);
+
     const currentRead = getReadIds();
     notificacoes.forEach((n) => currentRead.add(n.id));
     saveReadIds(currentRead);
 
     setNotificacoes([]);
     setNotificacaoSelecionada(null);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    } catch {
+      // silencioso
+    }
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        channel.postMessage({ type: 'LIMPAR_NOTIFICACOES', payload: { clearedAt: now } });
+        channel.close();
+      } catch {
+        // silencioso
+      }
+    }
+
     toast.info('Notificações', 'Histórico de notificações foi limpo.');
   }, [notificacoes, toast]);
 

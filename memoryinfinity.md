@@ -966,3 +966,8 @@ export const brandColors = {
       - Removidas emissões redundantes nos formulários, centralizando o disparo em `agendaService.saveAgendamento` com o ID canônico `notif-ag-${id}`.
       - Criada função de impressão digital canônica `getNotifFingerprint` (`ag_${paciente}_${horario}`) aplicada em `adicionarNotificacao`, `carregarNotificacoesReais`, `BroadcastChannel` e `emitirNotificacaoClinica`.
       - Garantido que para qualquer agendamento existirá estritamente **UMA única notificação e um único toque de sino**.
+  - **Correção da Limpeza e Exclusão Permanente de Notificações (`Limpar Histórico`):**
+    - Identificada a causa do botão "Limpar histórico" e do ícone de lixeira não apagarem as notificações: o polling automático a cada 12 segundos (`carregarNotificacoesReais`) recarregava todos os agendamentos e pacientes do Supabase porque a limpeza apenas marcava os IDs como lidos (`readIds`), sem persistir a exclusão.
+    - Implementadas as chaves persistentes `odonto_notifications_deleted_ids_v2` e `odonto_notifications_cleared_at_v2` no `localStorage`.
+    - Ao clicar em "Limpar histórico", o timestamp atual (`clearedAt`) é gravado e todas as notificações anteriores são ignoradas tanto no carregamento do banco quanto na sincronização em tempo real via `BroadcastChannel` (`LIMPAR_NOTIFICACOES`).
+    - Ao excluir individualmente pela lixeira, o ID é adicionado à lista negra de excluídos (`deletedIds`) e sincronizado entre abas (`EXCLUIR_NOTIFICACAO`), impedindo que a notificação retorne nos ciclos de polling.
