@@ -523,7 +523,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             carregarNotificacoesReais();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Se o WebSocket do Supabase Realtime estiver inacessível no gateway,
+            // remove o canal para evitar loops infinitos de reconexão no console.
+            // A sincronização permanece 100% ativa via BroadcastChannel e Polling.
+            supabase.removeChannel(channel);
+          }
+        });
 
       return () => {
         supabase.removeChannel(channel);

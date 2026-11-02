@@ -943,3 +943,6 @@ export const brandColors = {
   - **Ajuste da Janela de Disparo do Lembrete de Consulta para Testes:**
     - Em `automationEngine.ts`, alterada a janela de verificação de 2 horas (105-135 minutos) para **3 minutos antes da consulta** (`diffMinutes >= 0 && diffMinutes <= 4`), permitindo testes em tempo real de agendamento e entrega pelo WhatsApp com botões SIM/NÃO.
     - Intervalo de execução do motor reduzido para 15 segundos para resposta imediata durante os testes.
+  - **Correção de ReferenceError TDZ no Formulário de Agendamento (`AgendamentoFormView.tsx`):**
+    - Corrigido erro de Temporal Dead Zone onde `matchedProcedimento` era utilizado para calcular `durationMinutes` antes de sua declaração na função `handleSubmit`, gerando `ReferenceError: Cannot access 'T' before initialization` ao clicar em "Confirmar Agendamento".
+    - No `NotificationContext.tsx`, adicionada desconexão graciosa caso o handshake WebSocket do Supabase Realtime falhe no gateway, eliminando o loop de reconexão no console do navegador.

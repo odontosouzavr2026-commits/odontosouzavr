@@ -276,6 +276,21 @@ export const AgendamentoFormView: React.FC<AgendamentoFormViewProps> = ({
         (p) => p.name.toLowerCase().trim() === finalPatientName.toLowerCase().trim()
       );
 
+    const finalProcedureName = selectedProcedimento
+      ? selectedProcedimento.name
+      : procedureSearch.trim() || procedure.split(' (')[0];
+
+    if (!finalProcedureName) {
+      toast.warning('Atenção', 'Informe ou selecione o procedimento principal.');
+      return;
+    }
+
+    const matchedProcedimento =
+      selectedProcedimento ||
+      procedimentosList.find(
+        (pr) => pr.name.toLowerCase().trim() === finalProcedureName.toLowerCase().trim()
+      );
+
     // Validação Estrita de Conflito de Horário e Duplo Agendamento (Double Booking)
     const [h, m] = time.split(':').map(Number);
     const [y, mon, d] = date.split('-').map(Number);
@@ -295,21 +310,6 @@ export const AgendamentoFormView: React.FC<AgendamentoFormViewProps> = ({
       toast.warning('Horário Não Permitido', conflito.motivo || 'O paciente já possui um agendamento para este horário.');
       return;
     }
-
-    const finalProcedureName = selectedProcedimento
-      ? selectedProcedimento.name
-      : procedureSearch.trim() || procedure.split(' (')[0];
-
-    if (!finalProcedureName) {
-      toast.warning('Atenção', 'Informe ou selecione o procedimento principal.');
-      return;
-    }
-
-    const matchedProcedimento =
-      selectedProcedimento ||
-      procedimentosList.find(
-        (pr) => pr.name.toLowerCase().trim() === finalProcedureName.toLowerCase().trim()
-      );
 
     const resolvedPhone = matchedPaciente?.whatsapp || editingAppointment?.phone;
 
