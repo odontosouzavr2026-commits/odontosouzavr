@@ -947,7 +947,19 @@ export const brandColors = {
     - Corrigido erro de Temporal Dead Zone onde `matchedProcedimento` era utilizado para calcular `durationMinutes` antes de sua declaração na função `handleSubmit`, gerando `ReferenceError: Cannot access 'T' before initialization` ao clicar em "Confirmar Agendamento".
     - No `NotificationContext.tsx`, adicionada desconexão graciosa caso o handshake WebSocket do Supabase Realtime falhe no gateway, eliminando o loop de reconexão no console do navegador.
   - **Desduplicação Estrita de Notificações de Agendamento:**
-    - Identificada causa das 3 notificações simultâneas ao criar uma consulta:
+    - Identificada causa das 3 notificações simultâneas ao criar uma consulta: emissão manual no formulário (`AgendamentoFormView`), emissão no modal (`NovoAgendamentoModal`), gravação no serviço (`agendaService`), somadas ao polling periódico do Supabase gerando IDs efêmeros diferentes.
+    - Centralizada a emissão exclusivamente em `agendaService.saveAgendamento` com ID canônico padronizado (`notif-ag-${id}`).
+    - Adicionado filtro de impressão digital canônica (`getNotifFingerprint` baseado em paciente, data e horário) no `NotificationContext.tsx`, descartando sumariamente quaisquer duplicatas em janela de 10 minutos.
+  - **Fluxo n8n 24/7 de Disparo Automático de Lembretes com Timezone São Paulo (`America/Sao_Paulo`):**
+    - **Função PostgreSQL Canônica no Supabase (`public.obter_agendamentos_para_lembrete(p_janela_minutos)`):**
+      - Retorna com segurança agendamentos confirmados/agendados que ocorrem dentro da janela de antecedência configurada, calculando data e hora convertidas nativamente para `America/Sao_Paulo` (`DD/MM/YYYY` e `HH24:MI`).
+      - Prevenção total de duplicação: filtra agendamentos que já possuem registro de envio (`tpl-1`) em `public.auditoria_logs` nas últimas 24 horas.
+    - **Workflow n8n Outbound Dedicado (`PKdcdrCDBEq5JNYi`):**
+      - Agendamento cron ativo executando a cada 1 minuto com fuso horário `America/Sao_Paulo`.
+      - Consulta direta via SQL na API do Supabase (`/pg/query`), extrai agendamentos elegíveis e monta mensagem oficial da clínica com botões interativos `[ SIM ]` e `[ NÃO ]`.
+      - Disparo automático via Evolution API (`/message/sendButtons/atendimento`).
+      - Registro automático de auditoria em `public.auditoria_logs` garantindo rastreabilidade e idempotência estrita.
+      - Totalmente autônomo, funcionando 24 horas por dia na VPS sem dependência de aba de navegador aberta.
       1) Emissão redundante inline no formulário (`AgendamentoFormView.tsx` / `NovoAgendamentoModal.tsx`);
       2) Emissão de serviço em `agendaService.saveAgendamento`;
       3) Polling/sincronização do Supabase em `carregarNotificacoesReais` que não identificava notificações manuais já exibidas por terem IDs distintos.
