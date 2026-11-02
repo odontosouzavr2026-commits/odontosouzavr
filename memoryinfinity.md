@@ -914,3 +914,10 @@ export const brandColors = {
       - **Clique em SIM:** Mantém o status `Confirmado` no Supabase, grava em `auditoria_logs` que o paciente confirmou formalmente via botão, e envia mensagem automática de agradecimento imediato.
       - **Clique em NÃO:** Atualiza o status do agendamento para `Desmarcou` no Supabase, libera a vaga na agenda e envia mensagem de cancelamento com link para reagendamento.
       - Funciona 24 horas por dia de forma 100% independente do navegador ou computadores da clínica.
+  - **Suporte Nativo a Subdomínio do App (`app.odontosouzavr.com.br`):**
+    - **Roteamento Inteligente por Hostname (`isAppSubdomain`):** Em [`App.tsx`](file:///c:/OdontoSouza/src/App.tsx), adicionada detecção automática do hostname (`app.odontosouzavr.com.br` ou subdomínios `app.*`).
+    - **Comportamento Oficial do App:**
+      - **Acesso Deslogado:** Abre diretamente a tela oficial de login do sistema (`LoginView`), permitindo que a equipe clínica ou o paciente acessem imediatamente sem passar pela landing page pública.
+      - **Acesso Autenticado:** Se o usuário já estiver logado como paciente, abre a Área do Paciente (`/minhaconta`); se for da equipe (Dr. Frankisney, recepção, financeiro), abre direto o Dashboard administrativo (`AppLayout`).
+      - **Voltar ao Site:** Clicar em "Voltar para o site da clínica" no login do app redireciona para o domínio institucional público (`https://odontosouzavr.com.br`).
+      - **Logout:** Permanece no subdomínio do app exibindo a tela de login.

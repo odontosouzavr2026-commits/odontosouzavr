@@ -44,9 +44,25 @@ interface RouteState {
   activePath: string;
 }
 
+export const isAppSubdomain = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname.toLowerCase();
+  return hostname.startsWith('app.') || hostname.includes('app.odontosouzavr');
+};
+
 const getInitialRouteState = (): RouteState => {
   if (typeof window !== 'undefined') {
+    const isApp = isAppSubdomain();
     const pathname = window.location.pathname;
+
+    // Se estiver acessando via subdomínio app. (ex: app.odontosouzavr.com.br)
+    if (isApp) {
+      if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
+        return { currentRoute: 'paciente', activePath: 'minhaconta' };
+      }
+      return { currentRoute: 'admin', activePath: 'dashboard' };
+    }
+
     // Rota administrativa explícita
     if (pathname === '/paineladmin' || pathname.startsWith('/paineladmin')) {
       return { currentRoute: 'admin', activePath: 'dashboard' };
@@ -101,7 +117,24 @@ export default function App() {
   // Sincroniza com histórico do navegador para suportar /, /minhaconta e /paineladmin
   useEffect(() => {
     const handlePopState = () => {
+      const isApp = isAppSubdomain();
       const pathname = window.location.pathname;
+
+      if (isApp) {
+        if (pathname === '/minhaconta' || pathname.startsWith('/minhaconta')) {
+          setRouteState({
+            currentRoute: 'paciente',
+            activePath: 'minhaconta',
+          });
+        } else {
+          setRouteState((prev) => ({
+            currentRoute: 'admin',
+            activePath: prev.activePath === 'home' ? 'dashboard' : prev.activePath,
+          }));
+        }
+        return;
+      }
+
       if (pathname === '/paineladmin' || pathname.startsWith('/paineladmin')) {
         setRouteState((prev) => ({
           currentRoute: 'admin',
@@ -150,6 +183,12 @@ export default function App() {
     }
 
     if (path === '/' || path === 'institucional' || path === 'home') {
+      if (isAppSubdomain()) {
+        if (typeof window !== 'undefined') {
+          window.location.href = 'https://odontosouzavr.com.br';
+        }
+        return;
+      }
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {
         window.history.pushState({}, '', '/');
       }
@@ -196,6 +235,13 @@ export default function App() {
     localStorage.removeItem('odonto_user');
     sessionStorage.removeItem('odonto_user');
     setCurrentUser(null);
+    if (isAppSubdomain()) {
+      setRouteState({
+        currentRoute: 'admin',
+        activePath: 'dashboard',
+      });
+      return;
+    }
     if (currentRoute === 'admin') {
       if (typeof window !== 'undefined' && window.location.pathname !== '/paineladmin') {
         window.history.pushState({}, '', '/paineladmin');
