@@ -579,8 +579,8 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
     // Fecha a tela de escolha de procedimento
     setIsConfirmModalOpen(false);
 
-    // Abre o FORMULÁRIO COMPLETO COM TODAS AS INFORMAÇÕES DE CADASTRO
-    setAuthMode('cadastro');
+    // Abre o MODAL DE IDENTIFICAÇÃO DO PACIENTE (LOGIN COM OPÇÃO DE CADASTRO)
+    setAuthMode('login');
     setRegistrationSuccessMsg(null);
     setAuthError(null);
     setIsAuthModalOpen(true);
@@ -1236,7 +1236,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
                   </>
                 ) : (
                   <>
-                    <span>Prosseguir para Cadastro</span>
+                    <span>Continuar</span>
                     <ArrowRight className="w-4 h-4 text-[#94D2BD]" />
                   </>
                 )}

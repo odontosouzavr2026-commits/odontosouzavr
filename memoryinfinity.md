@@ -878,3 +878,7 @@ export const brandColors = {
       - Criado o serviço `automationEngine` inicializado na raiz da aplicação (`App.tsx`), rodando a cada 60 segundos para monitorar a agenda:
         - **Lembrete de 2h Antes (`tpl-1`):** Monitora consultas ativas do dia e dispara o template de confirmação rápida (*1 para Confirmar, 2 para Remarcar*) para pacientes na janela de 2 horas (105 a 135 minutos antes da consulta), com flag de envio único em memória para evitar qualquer duplicidade.
         - **Pesquisa de Satisfação Pós-Atendimento (`tpl-5`):** Monitora consultas concluídas e dispara a pesquisa de NPS.
+  - **Ajuste de Fluxo e Botão do Modal de Agendamento Institucional (`InstitucionalAgendaSection.tsx`):**
+    - **Renomeação do Botão:** No modal *"Confirmar Reserva de Consulta"*, o botão de ação foi alterado de *"Prosseguir para Cadastro"* para **"Continuar"** (tanto em Desktop quanto Mobile).
+    - **Transição Direta para a Tela de Identificação / Login:** Ao clicar em **"Continuar"**, o sistema agora abre diretamente o modal de **Identificação do Paciente** (`authMode = 'login'`) com os campos de E-mail e Senha para confirmação imediata da consulta, além do botão de destaque *"Não tenho cadastro — Criar cadastro novo"*.
+    - **Retorno Automático pós-Cadastro:** Caso o paciente clique para criar novo cadastro, o formulário completo é exibido e, após a conclusão do registro, retorna para a tela de login com o e-mail pré-preenchido e mensagem de sucesso para inserção da senha e gravação da consulta.
