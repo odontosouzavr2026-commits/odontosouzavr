@@ -90,6 +90,22 @@ export const buildOption2RescheduleReply = (params: {
   return `Entendido, *${firstName}*!\nAcesse seu painel pelo endereço https://app.odontosouzavr.com.br para fazer a Remarcação para um novo horário ou novo dia`;
 };
 
+/**
+ * Mensagem disparada quando um paciente na Fila de Encaixe é promovido automaticamente para uma vaga desmarcada
+ */
+export const buildEncaixePromovidoMessage = (params: {
+  patientName: string;
+  date: string;
+  time: string;
+  dentist?: string;
+  procedure?: string;
+}): string => {
+  const firstName = params.patientName.split(' ')[0] || params.patientName;
+  const formattedDate = formatAppointmentDate(params.date);
+  const dentistName = params.dentist || 'Dr. Frankisney Souza';
+  return `Olá, *${firstName}*! 🎉 Boas notícias!\n\nUma vaga abriu na agenda e você foi adiantado(a) da *Fila de Encaixe* prioritária da clínica Odonto Souza! 🦷✨\n\nConfira os dados do seu agendamento:\n📅 Data: *${formattedDate}*\n⏰ Horário: *${params.time}*\n👨‍⚕️ Profissional: *${dentistName}*\n📋 Procedimento: *${params.procedure || 'Consulta Odontológica'}*\n📍 Local: *Clínica Odonto Souza*\n\nSeu agendamento já está confirmado. Esperamos você na clínica! Se precisar de algo, responda a esta mensagem.`;
+};
+
 export const whatsappNotificationService = {
   /**
    * Agenda e dispara a confirmação de agendamento via WhatsApp exatamente após 5 segundos
@@ -510,6 +526,99 @@ export const whatsappNotificationService = {
       return true;
     } catch (err: any) {
       console.warn('[whatsappNotificationService.dispatchCustomText] Erro:', err.message);
+      return false;
+    }
+  },
+
+  /**
+   * Notifica um paciente da Fila de Encaixe que uma vaga abriu e sua consulta foi agendada
+   */
+  async notifyEncaixePromovido(params: {
+    patientName: string;
+    phone?: string;
+    date: string;
+    time: string;
+    dentist?: string;
+    procedure?: string;
+    pacienteId?: string;
+  }): Promise<boolean> {
+    try {
+      let phone = params.phone;
+      const cleanDigits = (phone || '').replace(/\D/g, '');
+
+      if (cleanDigits.length < 8) {
+        if (params.pacienteId) {
+          const { data } = await supabase
+            .from('pacientes')
+            .select('telefone')
+            .eq('id', params.pacienteId)
+            .maybeSingle();
+          if (data?.telefone) phone = data.telefone;
+        }
+
+        if (!phone && params.patientName) {
+          const { data } = await supabase
+            .from('pacientes')
+            .select('telefone')
+            .ilike('nome', params.patientName.trim())
+            .maybeSingle();
+          if (data?.telefone) phone = data.telefone;
+        }
+      }
+
+      if (!phone || phone.replace(/\D/g, '').length < 8) {
+        console.warn('[whatsappNotificationService] Encaixe promovido sem telefone para envio:', params.patientName);
+        return false;
+      }
+
+      const messageText = buildEncaixePromovidoMessage({
+        patientName: params.patientName,
+        date: params.date,
+        time: params.time,
+        dentist: params.dentist || 'Dr. Frankisney Souza',
+        procedure: params.procedure || 'Consulta Odontológica',
+      });
+
+      await evolutionApiService.sendTextMessage(phone, messageText);
+
+      templateService.logDispatch({
+        id: `dsp-encaixe-${Date.now()}`,
+        templateId: 'tpl-encaixe-promovido',
+        templateName: 'Chamada de Fila de Encaixe',
+        recipientName: params.patientName,
+        phone,
+        sentAt: new Date().toISOString(),
+        status: 'sent',
+        channel: 'evolution_api',
+      });
+
+      const metrics = templateService.getMetrics();
+      metrics.sentToday = (metrics.sentToday || 0) + 1;
+      localStorage.setItem('odonto_whatsapp_metrics_v2', JSON.stringify(metrics));
+
+      try {
+        await supabase.from('auditoria_logs').insert({
+          entidade: 'agendamentos',
+          acao: 'ENCAIXE_AUTOMATICO_WHATSAPP',
+          detalhes: `Paciente ${params.patientName} (${phone}) alocado automaticamente da fila de encaixe para a vaga das ${params.time} em ${params.date} e notificado no WhatsApp.`,
+        });
+      } catch (e) {}
+
+      // Notificação visual de sucesso
+      window.dispatchEvent(
+        new CustomEvent('app_toast', {
+          detail: {
+            type: 'success',
+            title: 'Encaixe Notificado! 📲🎉',
+            message: `${params.patientName} recebeu os dados do agendamento no WhatsApp para as ${params.time}!`,
+            duration: 5000,
+          },
+        })
+      );
+
+      return true;
+    } catch (err: any) {
+      console.error('[whatsappNotificationService.notifyEncaixePromovido] Erro ao notificar paciente de encaixe:', err);
       return false;
     }
   },

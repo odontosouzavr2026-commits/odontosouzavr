@@ -542,6 +542,21 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
     setIsConfirmModalOpen(true);
   };
 
+  const handleSolicitarEncaixeInstitucional = () => {
+    const encaixeSlot: SlotSchedule = {
+      id: `encaixe-${Date.now()}`,
+      time: '11:00',
+      endTime: '11:45',
+      duration: '45 min',
+      shift: 'manha',
+      status: 'livre',
+      label: 'Fila de Encaixe Prioritária',
+    };
+    setSelectedSlot(encaixeSlot);
+    setPatientNotes('Solicitação de Fila de Encaixe Prioritária via Site Institucional (Sobreaviso sem garantia de horário fixo).');
+    setIsConfirmModalOpen(true);
+  };
+
   // Ação ao avançar a partir da tela de escolha de procedimento
   const handleProceedFromConfirm = () => {
     if (!selectedSlot) return;
@@ -602,6 +617,8 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
 
       const resolvedPhone = (userToBook as any).whatsapp || (userToBook as any).telefone || (userToBook as any).phone || regWhatsapp.trim() || undefined;
 
+      const isEncaixe = selectedSlot.id.startsWith('encaixe-');
+
       // 1. Salva via agendaService com validação estrita de duplo agendamento e disparo automático de WhatsApp
       await agendaService.saveAgendamento({
         pacienteId: userToBook.id || undefined,
@@ -617,10 +634,11 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
         time: selectedSlot.time,
         dataHoraInicio: startDateTime,
         dataHoraFim: endDateTime,
-        status: 'Confirmado',
-        tipo: 'Consulta',
-        observacoes: patientNotes ? `[Site Institucional] ${patientNotes}` : 'Agendamento realizado via Página Institucional',
-        notes: patientNotes ? `[Site Institucional] ${patientNotes}` : 'Agendamento realizado via Página Institucional',
+        status: isEncaixe ? 'Encaixe de Urgência' : 'Confirmado',
+        tipo: isEncaixe ? 'Encaixe' : 'Consulta',
+        isEncaixe: isEncaixe,
+        observacoes: patientNotes ? `[Site Institucional] ${patientNotes}` : isEncaixe ? 'Fila de Encaixe solicitada via Site Institucional' : 'Agendamento realizado via Página Institucional',
+        notes: patientNotes ? `[Site Institucional] ${patientNotes}` : isEncaixe ? 'Fila de Encaixe solicitada via Site Institucional' : 'Agendamento realizado via Página Institucional',
       });
 
       // Atualiza imediatamente a lista de horários ocupados para o horário sumir da grade pública
@@ -1027,6 +1045,37 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
                 <span>Tempo Otimizado: 45 min por atendimento</span>
               </div>
             </div>
+
+            {/* ALERTA VISUAL DE ENCAIXE / AGENDA LOTADA */}
+            {availableSlots.length === 0 && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border border-amber-300 text-amber-950 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-200">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-black text-sm sm:text-base text-amber-950">
+                        Agenda Lotada para {formattedSelectedDate}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-amber-900 uppercase">
+                        Apenas Encaixe
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-900 leading-relaxed max-w-xl">
+                      Todos os horários regulares para esta data estão preenchidos. Disponibilizamos a <strong>Fila de Encaixe Prioritária</strong>. <em>Aviso importante: o encaixe não é garantia de atendimento em horário pré-fixado</em>, dependendo de cancelamentos de outros pacientes ou intervalo clínico. Havendo desistência, o 1º da fila assume o horário e recebe a confirmação no WhatsApp.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSolicitarEncaixeInstitucional}
+                  className="px-4 py-2.5 rounded-xl bg-[#005F73] hover:bg-[#004655] text-white text-xs font-bold shrink-0 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                >
+                  Entrar na Fila de Encaixe
+                </button>
+              </div>
+            )}
 
             {/* Barra de Filtro de Turnos (Somente Vagas Disponíveis) */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">

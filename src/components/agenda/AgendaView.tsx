@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Database,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { AgendaMetricsHeader } from './AgendaMetricsHeader';
 import { MiniCalendarCard } from './MiniCalendarCard';
@@ -477,7 +478,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleOpenForm = (time: string = '09:00') => {
+  const handleOpenForm = (time: string = '09:00', isEncaixe: boolean = false) => {
     const now = new Date();
     const isPastDate =
       selectedDate.getFullYear() < now.getFullYear() ||
@@ -504,7 +505,21 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       }
     }
 
-    setEditingAppointment(null);
+    if (isEncaixe) {
+      setEditingAppointment({
+        id: '',
+        date: activeDateKey,
+        time: targetTime,
+        patientName: '',
+        procedure: 'Encaixe de Urgência',
+        insurance: 'Particular',
+        status: 'Encaixe de Urgência',
+        isEncaixe: true,
+      });
+    } else {
+      setEditingAppointment(null);
+    }
+
     setFormInitialTime(targetTime);
     setCurrentView('form');
     scrollToTop();
@@ -579,6 +594,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       await agendaService.deleteAgendamento(slotToDelete.id);
       setSupabaseAppointments((prev) => prev.filter((a) => a.id !== slotToDelete.id));
       showToast('Agendamento excluído do Supabase e horário liberado!');
+      await loadAppointmentsFromSupabase();
     } catch (err) {
       console.error('Erro ao excluir do Supabase:', err);
       showToast('Erro ao excluir agendamento do Supabase.');
@@ -650,9 +666,23 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     }
   };
 
-  const handlePuxarEncaixe = (item: EncaixeQueueItem) => {
-    handleOpenForm('11:00');
-    showToast(`Encaixe puxado para ${item.name}!`);
+  const handlePuxarEncaixe = async (item: EncaixeQueueItem) => {
+    const freeSlot = currentSlots.find((s) => s.type === 'livre');
+    if (freeSlot) {
+      showToast(`Alocando ${item.name} para a vaga das ${freeSlot.time}...`);
+      const promovido = await agendaService.promoverPrimeiroEncaixeParaVaga({
+        dataHoraInicio: `${activeDateKey}T${freeSlot.time}:00`,
+        dateKey: activeDateKey,
+        time: freeSlot.time,
+      });
+      if (promovido) {
+        showToast(`🎉 ${item.name} alocado(a) para as ${freeSlot.time} e notificado no WhatsApp!`);
+        await loadAppointmentsFromSupabase();
+        return;
+      }
+    }
+    handleOpenForm('11:00', false);
+    showToast(`Selecione o horário para alocar o encaixe de ${item.name}.`);
   };
 
   // Dias da semana móvel ao redor do dia selecionado
@@ -916,12 +946,41 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             items={activeEncaixeQueue}
             selectedDate={selectedDate}
             onPuxarEncaixe={handlePuxarEncaixe}
+            onAdicionarEncaixe={() => handleOpenForm('11:00', true)}
             isMobile={forceMobileView}
           />
         </div>
 
         {/* Coluna Direita: Linha do Tempo Real do Supabase */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-4">
+          {currentSlots.filter((s) => s.type === 'livre').length === 0 && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                    <span>Agenda do Dia Lotada (Sem Horários Livres)</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-200 text-amber-900 font-extrabold uppercase">
+                      Sobreaviso Ativo
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-amber-900 leading-snug mt-0.5">
+                    Novos agendamentos devem ser incluídos na <strong>Fila de Encaixe</strong>. Em caso de desistência ou cancelamento, o 1º da fila é alocado e notificado no WhatsApp automaticamente.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenForm('11:00', true)}
+                className="px-3.5 py-2 rounded-xl bg-[#005F73] hover:bg-[#004655] text-white text-xs font-bold shrink-0 shadow-2xs transition-all cursor-pointer"
+              >
+                + Adicionar ao Encaixe
+              </button>
+            </div>
+          )}
+
           <TimelineSchedule
             selectedDate={selectedDate}
             slots={currentSlots}

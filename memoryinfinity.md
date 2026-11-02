@@ -990,3 +990,21 @@ export const brandColors = {
       1. Tem os botões de ação **Editar** (lápis) e **Excluir** (lixeira) automaticamente ocultados no card da linha do tempo (`TimelineSchedule.tsx`);
       2. No modal de detalhes do agendamento, os botões de exclusão, edição e lembrete de WhatsApp são removidos, mantendo visível apenas a ação **Ver Prontuário**;
       3. Adicionadas travas defensivas nas funções `handleEdit`, `handleRequestDelete`, `handleEditSlot` e `handleDeleteSlot` em `AgendaView.tsx` e `TimelineSchedule.tsx`, impedindo alterações acidentais mesmo via atalhos.
+  - **Fila de Encaixe com Alerta Visual Multi-Canais & Alocação Automática na Desistência com Notificação WhatsApp:**
+    - Implementada a arquitetura completa de Fila de Encaixe solicitada pelo usuário:
+      1. **Alerta Visual Multi-Canais:**
+         - **Agenda da Administração (`AgendaView.tsx` e `EncaixeQueueCard.tsx`):**
+           - Card retrátil com aviso de sobreaviso clínico explícito: *"A Fila de Encaixe é uma reserva prioritária para quando a agenda estiver cheia. Não é garantia de atendimento em horário pré-fixado, dependendo de cancelamentos ou intervalos na clínica. Havendo desistência, o 1º da fila é alocado e notificado no WhatsApp na hora."*
+           - Botão de ação direta `[ Adicionar ]` e `+ Colocar Paciente no Encaixe` para inclusão imediata na fila do dia.
+           - Banner superior na linha do tempo quando a agenda do dia estiver lotada (`currentSlots.filter(s => s.type === 'livre').length === 0`).
+           - Numeração posicional de fila (`#1`, `#2`...) para visualização da ordem de prioridade.
+         - **Página Institucional (`InstitucionalAgendaSection.tsx`):**
+           - Banner visual destacado de aviso quando todas as vagas da data estiverem ocupadas ou encerradas.
+           - Botão `[ Entrar na Fila de Encaixe ]` que abre o fluxo de cadastro e reserva marcando como sobreaviso prioritário no Supabase.
+         - **Área do Paciente (`AgendarConsultaView.tsx`):**
+           - Banner de aviso de agenda lotada e card explicativo de sobreaviso informando com total transparência que o encaixe não garante horário fixo.
+           - Botão `Entrar na Fila de Encaixe` conectado diretamente ao Supabase através de `agendaService.saveAgendamento` com `isEncaixe: true` e `status: 'Encaixe de Urgência'`.
+      2. **Promoção Automática do 1º da Fila de Encaixe:**
+         - Criada função `agendaService.promoverPrimeiroEncaixeParaVaga({ dataHoraInicio, dataHoraFim, dateKey, time })`.
+         - Ao cancelar ou excluir um agendamento no painel (`handleDeleteSlot` ou `agendaService.updateStatus`), o sistema busca o primeiro encaixe pendente para a data, atualiza seus horários para a vaga liberada, define o status para `Confirmado` e dispara a notificação no WhatsApp.
+         - No n8n (workflow `kr1yAMMTpD91OXVS`), quando o paciente responde `2` (Desmarcar/Remarcar), o nó `node-cancel-supabase` atualiza a consulta para `Desmarcou` e o novo nó `node-auto-encaixe` consulta o 1º da fila no Supabase para aquele dia, atualiza seus horários e dispara imediatamente o WhatsApp com os dados do agendamento (Data, Horário, Dr. Frankisney Souza e Clínica Odonto Souza).

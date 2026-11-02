@@ -562,19 +562,52 @@ export const agendaService = {
 
   async updateStatus(id: string, status: string): Promise<any> {
     try {
+      let appointmentToCancel: any = null;
+      const cleanSt = (status || '').toLowerCase();
+      const isDesmarcando = cleanSt.includes('desmarc') || cleanSt.includes('cancel') || cleanSt.includes('falta');
+
+      if (isDesmarcando && id && !id.startsWith('app-') && !id.startsWith('slot-')) {
+        const { data: appData } = await supabase
+          .from('agendamentos')
+          .select('id, data_hora_inicio, data_hora_fim, status')
+          .eq('id', id)
+          .maybeSingle();
+        appointmentToCancel = appData;
+      }
+
       const { data, error } = await supabase.rpc('atualizar_status_agendamento', {
         p_id: id,
         p_status: status,
       });
+
+      let result = data;
       if (error) {
         const { data: updated, error: updateError } = await supabase
           .from('agendamentos')
           .update({ status })
           .eq('id', id);
         if (updateError) throw updateError;
-        return updated;
+        result = updated;
       }
-      return data;
+
+      // Se um agendamento foi cancelado/desmarcado, aciona a auto-puxada do primeiro da fila de encaixe
+      if (isDesmarcando && appointmentToCancel?.data_hora_inicio) {
+        const startD = new Date(appointmentToCancel.data_hora_inicio);
+        const y = startD.getFullYear();
+        const m = String(startD.getMonth() + 1).padStart(2, '0');
+        const d = String(startD.getDate()).padStart(2, '0');
+        const dateKey = `${y}-${m}-${d}`;
+        const timeStr = startD.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        this.promoverPrimeiroEncaixeParaVaga({
+          dataHoraInicio: appointmentToCancel.data_hora_inicio,
+          dataHoraFim: appointmentToCancel.data_hora_fim,
+          dateKey,
+          time: timeStr,
+        }).catch((encErr) => console.warn('[agendaService.updateStatus] Erro ao alocar encaixe:', encErr));
+      }
+
+      return result;
     } catch (err) {
       console.error('[agendaService.updateStatus] Erro:', err);
       throw err;
@@ -584,14 +617,165 @@ export const agendaService = {
   async deleteAgendamento(id: string): Promise<boolean> {
     try {
       if (!id || id.startsWith('app-') || id.startsWith('item-')) return true;
+
+      // Busca dados antes de deletar para poder alocar o encaixe caso a vaga seja liberada
+      let appData: any = null;
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('id, data_hora_inicio, data_hora_fim, status')
+        .eq('id', id)
+        .maybeSingle();
+      appData = data;
+
       const { error } = await supabase.from('agendamentos').delete().eq('id', id);
       if (error) {
         console.warn('[agendaService.deleteAgendamento] Erro no Supabase:', error.message);
+        return false;
       }
-      return !error;
+
+      // Se deletou com sucesso e a consulta não estava concluída, aloca o 1º da fila de encaixe
+      if (appData?.data_hora_inicio && !appData.status?.toLowerCase().includes('conclu')) {
+        const startD = new Date(appData.data_hora_inicio);
+        const y = startD.getFullYear();
+        const m = String(startD.getMonth() + 1).padStart(2, '0');
+        const d = String(startD.getDate()).padStart(2, '0');
+        const dateKey = `${y}-${m}-${d}`;
+        const timeStr = startD.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        this.promoverPrimeiroEncaixeParaVaga({
+          dataHoraInicio: appData.data_hora_inicio,
+          dataHoraFim: appData.data_hora_fim,
+          dateKey,
+          time: timeStr,
+        }).catch((encErr) => console.warn('[agendaService.deleteAgendamento] Erro ao alocar encaixe:', encErr));
+      }
+
+      return true;
     } catch (err) {
       console.error('[agendaService.deleteAgendamento] Exceção:', err);
       return false;
+    }
+  },
+
+  /**
+   * Promove automaticamente o primeiro paciente da Fila de Encaixe para a vaga liberada por desistência.
+   * O paciente alocado recebe instantaneamente uma notificação completa no WhatsApp com os dados da consulta.
+   */
+  async promoverPrimeiroEncaixeParaVaga(vaga: {
+    dataHoraInicio: string;
+    dataHoraFim?: string;
+    dateKey: string;
+    time?: string;
+  }): Promise<{ id: string; patientName: string; phone?: string; time: string } | null> {
+    try {
+      // 1. Busca os encaixes cadastrados no Supabase ordenados por ordem cronológica de criação (1º da fila)
+      const { data: encaixes, error } = await supabase
+        .from('agendamentos')
+        .select(`
+          id,
+          paciente_id,
+          dentista_id,
+          cadeira_id,
+          procedimento_id,
+          data_hora_inicio,
+          data_hora_fim,
+          status,
+          tipo,
+          observacoes,
+          criado_em,
+          pacientes (id, nome, telefone),
+          procedimentos (id, nome)
+        `)
+        .or('tipo.eq.Encaixe,status.eq.Encaixe de Urgência,status.eq.Em Espera')
+        .order('criado_em', { ascending: true });
+
+      if (error || !encaixes || encaixes.length === 0) {
+        return null;
+      }
+
+      // Filtra os que pertencem à data da vaga liberada e que ainda não estejam concluídos/cancelados
+      const encaixeCandidato = encaixes.find((enc: any) => {
+        const encDate = new Date(enc.data_hora_inicio);
+        const y = encDate.getFullYear();
+        const m = String(encDate.getMonth() + 1).padStart(2, '0');
+        const d = String(encDate.getDate()).padStart(2, '0');
+        const encDateKey = `${y}-${m}-${d}`;
+        const st = (enc.status || '').toLowerCase();
+        const isStillPending = !st.includes('conclu') && !st.includes('cancel') && !st.includes('desmarc') && !st.includes('atendimento');
+        return encDateKey === vaga.dateKey && isStillPending;
+      });
+
+      if (!encaixeCandidato) {
+        return null;
+      }
+
+      // 2. Calcula novo horário de início e fim baseado na vaga liberada
+      const targetStart = new Date(vaga.dataHoraInicio);
+      const targetEnd = vaga.dataHoraFim
+        ? new Date(vaga.dataHoraFim)
+        : new Date(targetStart.getTime() + 45 * 60000);
+
+      const targetTimeStr = vaga.time || targetStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      // 3. Atualiza o agendamento no Supabase
+      const { error: updateErr } = await supabase
+        .from('agendamentos')
+        .update({
+          data_hora_inicio: targetStart.toISOString(),
+          data_hora_fim: targetEnd.toISOString(),
+          status: 'Confirmado',
+          tipo: 'Procedimento',
+          observacoes: (encaixeCandidato.observacoes ? encaixeCandidato.observacoes + ' | ' : '') + `Alocado automaticamente da Fila de Encaixe para ${targetTimeStr}`,
+        })
+        .eq('id', encaixeCandidato.id);
+
+      if (updateErr) {
+        console.error('[agendaService.promoverPrimeiroEncaixeParaVaga] Erro ao atualizar encaixe:', updateErr.message);
+        return null;
+      }
+
+      const pName = encaixeCandidato.pacientes?.nome || 'Paciente';
+      const pPhone = encaixeCandidato.pacientes?.telefone;
+      const procName = encaixeCandidato.procedimentos?.nome || 'Consulta Odontológica';
+
+      // 4. Envia mensagem no WhatsApp com os dados completos do agendamento
+      await whatsappNotificationService.notifyEncaixePromovido({
+        patientName: pName,
+        phone: pPhone,
+        date: vaga.dateKey,
+        time: targetTimeStr,
+        dentist: 'Dr. Frankisney Souza',
+        procedure: procName,
+        pacienteId: encaixeCandidato.paciente_id,
+      });
+
+      // 5. Emite notificação sonora e no sininho do sistema
+      emitirNotificacaoClinica({
+        id: `notif-promovido-${encaixeCandidato.id}`,
+        tipo: 'novo_agendamento',
+        titulo: 'Vaga Preenchida por Fila de Encaixe! 🎉',
+        mensagem: `${pName} foi transferido(a) automaticamente da Fila de Encaixe para as ${targetTimeStr}. Mensagem com dados enviada no WhatsApp!`,
+        detalhes: {
+          pacienteNome: pName,
+          pacienteTelefone: pPhone || '',
+          dataConsulta: `${vaga.dateKey} às ${targetTimeStr}`,
+          horarioConsulta: targetTimeStr,
+          procedimento: procName,
+          dentista: 'Dr. Frankisney Souza',
+          origem: 'fila_encaixe_automatica',
+        },
+        linkRota: 'agenda',
+      });
+
+      return {
+        id: encaixeCandidato.id,
+        patientName: pName,
+        phone: pPhone,
+        time: targetTimeStr,
+      };
+    } catch (e) {
+      console.error('[agendaService.promoverPrimeiroEncaixeParaVaga] Falha ao processar encaixe:', e);
+      return null;
     }
   },
 };

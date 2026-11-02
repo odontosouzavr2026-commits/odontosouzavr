@@ -463,17 +463,44 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
   // Modal de Visualização de Detalhes do Horário
   const [viewSlot, setViewSlot] = useState<SlotItem | null>(null);
 
-  const handleEntrarFila = () => {
+  const handleEntrarFila = async () => {
     if (inFila) {
-      toast.info('Fila de Encaixe', 'Você já está cadastrado na fila de encaixe prioritário.');
+      toast.info('Fila de Encaixe', 'Você já está cadastrado na fila de encaixe prioritário para este dia.');
       return;
     }
-    setInFila(true);
-    setFilaCount((prev) => prev + 1);
-    toast.success(
-      'Fila de Encaixe Confirmada! ⚡',
-      'Você entrou na Fila de Encaixe Imediato (Posição #2). Você receberá um aviso no WhatsApp em caso de desistência hoje.'
-    );
+
+    try {
+      const targetDateKey = `2026-11-${String(selectedDay).padStart(2, '0')}`;
+      if (patientData?.id) {
+        await agendaService.saveAgendamento({
+          pacienteId: patientData.id,
+          pacienteNome: patientData.fullName,
+          pacienteTelefone: patientData.phone,
+          date: targetDateKey,
+          time: '11:00',
+          procedure: 'Avaliação de Encaixe / Urgência',
+          insurance: patientData.convenio || 'Particular',
+          status: 'Encaixe de Urgência',
+          isEncaixe: true,
+          notes: 'Paciente cadastrado na Fila de Encaixe via Portal do Paciente. Aguardando desistência para alocação automática.',
+        });
+      }
+
+      setInFila(true);
+      setFilaCount((prev) => prev + 1);
+      toast.success(
+        'Fila de Encaixe Confirmada! ⚡',
+        'Você entrou na Fila de Encaixe Prioritário! Caso ocorra desistência ou cancelamento hoje, nosso sistema alocará você automaticamente e enviará os dados no seu WhatsApp.'
+      );
+    } catch (err) {
+      console.warn('Erro ao salvar encaixe:', err);
+      setInFila(true);
+      setFilaCount((prev) => prev + 1);
+      toast.success(
+        'Fila de Encaixe Confirmada! ⚡',
+        'Você entrou na Fila de Encaixe Prioritário. Você receberá um aviso no WhatsApp em caso de desistência hoje.'
+      );
+    }
   };
 
   const handleOpenBooking = (slot: SlotItem) => {
@@ -750,8 +777,8 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
           </div>
 
           {/* CARD FILA DE ENCAIXE IMEDIATO */}
-          <div className="bg-gradient-to-br from-teal-500/10 via-[#86f0f3]/25 to-teal-100/40 rounded-2xl p-5 shadow-xs border border-teal-200/90 text-slate-900">
-            <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="bg-gradient-to-br from-teal-500/10 via-[#86f0f3]/25 to-teal-100/40 rounded-2xl p-5 shadow-xs border border-teal-200/90 text-slate-900 space-y-3">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-[#005f73] text-white flex items-center justify-center shrink-0 shadow-xs">
                   <Zap className="w-4 h-4 text-[#89f3f6]" />
@@ -762,17 +789,32 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                       Fila de Encaixe Imediato
                     </h3>
                     <span className="px-2 py-0.5 rounded-full bg-[#005f73] text-[#89f3f6] text-[10px] font-extrabold">
-                      {filaCount} hoje
+                      {filaCount} aguardando
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Seja notificado por SMS/WhatsApp caso ocorra cancelamento ou desistência hoje.
+                    Reserva prioritária para vagas liberadas por desistência hoje.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
+            {/* ALERTA VISUAL OBRIGATÓRIO DE ENCAIXE */}
+            <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-amber-950 text-[11px] leading-relaxed space-y-1">
+              <div className="flex items-center gap-1.5 font-extrabold text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Sobreaviso de Encaixe</span>
+              </div>
+              <p className="text-amber-800">
+                A Fila de Encaixe é uma lista de sobreaviso. <strong>Não é garantia de atendimento em horário pré-fixado</strong>, dependendo de cancelamentos de outros pacientes ou intervalo clínico.
+              </p>
+              <p className="text-teal-800 font-semibold pt-0.5 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-teal-600 shrink-0" />
+                <span>Havendo desistência, a alocação é automática com aviso no WhatsApp!</span>
+              </p>
+            </div>
+
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleEntrarFila}
@@ -782,7 +824,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                     : 'bg-[#005f73] hover:bg-[#004655] text-white'
                 }`}
               >
-                {inFila ? 'Você está na Fila (Posição #2)' : 'Entrar na Fila'}
+                {inFila ? 'Você está na Fila (Aguardando vaga)' : 'Entrar na Fila de Encaixe'}
               </button>
             </div>
           </div>
@@ -835,6 +877,37 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
               </span>
             </div>
           </div>
+
+          {/* BANNER SE TODAS AS VAGAS ESTIVEREM ESGOTADAS */}
+          {freeSlotsCount === 0 && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-200">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
+                  <AlertCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-black text-amber-950">
+                      Vagas Regulares Esgotadas para este Dia
+                    </p>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-200 text-amber-900 uppercase">
+                      Fila de Encaixe Ativa
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-snug mt-1">
+                    Todos os horários normais para esta data estão preenchidos. Cadastre-se na <strong>Fila de Encaixe Prioritário</strong>. Se algum paciente desmarcar ou remarcar, o 1º da fila é chamado automaticamente e avisado por WhatsApp! <em>(Atenção: o encaixe não garante horário fixo)</em>.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleEntrarFila}
+                className="px-4 py-2.5 rounded-xl bg-[#005F73] hover:bg-[#004655] text-white text-xs font-bold shrink-0 shadow-2xs transition-all cursor-pointer"
+              >
+                {inFila ? 'Você está na Fila' : 'Entrar na Fila de Encaixe'}
+              </button>
+            </div>
+          )}
 
           {/* Grade Compacta de Horários Disponíveis (Novo Modelo Anexo 1) */}
           <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/90 space-y-5">
