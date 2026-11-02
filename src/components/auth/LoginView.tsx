@@ -579,45 +579,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </button>
             </form>
 
-            {/* Link para Área do Paciente e Site Institucional */}
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2.5 text-xs text-slate-500">
-              <div className="flex items-center justify-between">
-                <span>É um paciente da clínica?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onNavigateToPaciente) {
-                      onNavigateToPaciente();
-                    } else if (typeof window !== 'undefined') {
-                      window.history.pushState({}, '', '/minhaconta');
-                      window.location.href = '/minhaconta';
-                    }
-                  }}
-                  className="text-[#005F73] font-bold hover:underline cursor-pointer"
-                >
-                  Área do Paciente →
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-slate-50">
-                <span>Quer conhecer nossos serviços?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onNavigateToInstitucional) {
-                      onNavigateToInstitucional();
-                    } else if (typeof window !== 'undefined') {
-                      window.history.pushState({}, '', '/');
-                      window.location.href = '/';
-                    }
-                  }}
-                  className="text-[#0A9396] font-bold hover:underline cursor-pointer"
-                >
-                  ← Ver Site Institucional
-                </button>
-              </div>
-            </div>
-
             {/* Mobile Footer Links */}
             <div className="mt-8 flex flex-col items-center text-center space-y-2">
               <div className="flex items-center space-x-2 text-slate-400 text-xs">

@@ -659,20 +659,6 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
 
             {/* Rodapé do Drawer com Ações */}
             <div className="p-4 sm:p-5 border-t border-white/10 space-y-2">
-              {onNavigateToAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileDrawerOpen(false);
-                    onNavigateToAdmin();
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 bg-teal-500/20 hover:bg-teal-600 text-teal-100 hover:text-white border border-teal-400/30 hover:border-teal-600 py-2.5 px-4 rounded-xl font-bold text-xs transition-all duration-200 shadow-xs cursor-pointer group"
-                  title="Acessar o Painel Administrativo (/paineladmin)"
-                >
-                  <ArrowLeft className="w-4 h-4 text-teal-300 group-hover:text-white transition-colors" />
-                  <span>Painel Admin (/paineladmin)</span>
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => {
@@ -786,17 +772,6 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
 
         {/* Rodapé Sidebar: Ações */}
         <div className="p-6 border-t border-white/10 space-y-2.5">
-          {onNavigateToAdmin && (
-            <button
-              type="button"
-              onClick={onNavigateToAdmin}
-              className="w-full flex items-center justify-center space-x-2 bg-teal-500/20 hover:bg-teal-600 text-teal-100 hover:text-white border border-teal-400/30 hover:border-teal-600 py-2.5 px-3 rounded-xl font-bold text-xs transition-all duration-200 shadow-xs cursor-pointer group"
-              title="Acessar o Painel Administrativo (/paineladmin)"
-            >
-              <ArrowLeft className="w-4 h-4 text-teal-300 group-hover:text-white transition-colors" />
-              <span>Painel Admin (/paineladmin)</span>
-            </button>
-          )}
           <button
             type="button"
             onClick={handleLogoutClick}
@@ -968,34 +943,6 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     <HelpCircle className="w-4 h-4 text-slate-400" />
                     <span>Ajuda & FAQ</span>
                   </button>
-
-                  {onNavigateToInstitucional && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onNavigateToInstitucional();
-                      }}
-                      className="w-full flex items-center space-x-3 px-4 py-2 text-xs font-semibold text-[#0A9396] hover:bg-teal-50 transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-[#0A9396]" />
-                      <span>Ir para Site da Clínica</span>
-                    </button>
-                  )}
-
-                  {onNavigateToAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        onNavigateToAdmin();
-                      }}
-                      className="w-full flex items-center space-x-3 px-4 py-2 text-xs font-semibold text-[#005f73] hover:bg-teal-50 transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-[#005f73]" />
-                      <span>Ir para Gestão Clínica</span>
-                    </button>
-                  )}
 
                   <div className="my-1 border-t border-slate-100" />
 

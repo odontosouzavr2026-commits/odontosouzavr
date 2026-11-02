@@ -936,3 +936,7 @@ export const brandColors = {
     - **Renderização Dinâmica na Página Institucional (`InstitucionalView.tsx`):**
       - Substituição dos depoimentos estáticos por consumo reativo do Supabase.
       - Exibição com avatares dos pacientes, estrelas douradas de 1 a 5, selo de paciente verificado e tempo relativo amigável ("Há 1 semana", "Há 3 dias", "Hoje").
+  - **Isolamento Estrito de Navegação nos Menus do App e Área do Paciente:**
+    - **Tela de Login (`LoginView.tsx`):** Removidos links de rodapé que apontavam para "Área do Paciente" e "Ver Site Institucional", focando a tela de login exclusivamente na autenticação do sistema.
+    - **Menu Suspenso do Administrador (`AppLayout.tsx`):** Removidas as opções "Site Institucional" e "Área do Paciente (/minhaconta)", mantendo apenas "Dados da Clínica", "Ajuda" (com remoção da tag/badge "Suporte") e "Sair".
+    - **Tela do Paciente (`MinhaContaView.tsx`):** Removidos atalhos e botões que direcionavam para "Painel Admin (/paineladmin)" e "Site da Clínica" na sidebar desktop, drawer mobile e menu suspenso de perfil.
