@@ -42,7 +42,7 @@ export const automationEngine = {
             if (this.isRunning && isLeaderTab) {
               this.checkAutomations();
             }
-          }, 60000);
+          }, 15000); // 15 segundos para resposta ágil no teste de lembrete de 3 minutos
 
           await new Promise<void>((resolve) => {
             stopLeaderLock = resolve;
@@ -68,7 +68,7 @@ export const automationEngine = {
 
     this.privateTimerId = setInterval(() => {
       if (this.isRunning) this.checkAutomations();
-    }, 60000);
+    }, 15000);
   },
 
   /**
@@ -148,8 +148,8 @@ export const automationEngine = {
       const appStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
       const diffMinutes = Math.round((appStartTime.getTime() - now.getTime()) / 60000);
 
-      // Janela de disparo: entre 105 e 135 minutos antes da consulta (aproximadamente 2 horas)
-      if (diffMinutes >= 105 && diffMinutes <= 135) {
+      // Janela de disparo configurada para teste: 3 minutos antes da consulta (entre 0 e 4 minutos à frente)
+      if (diffMinutes >= 0 && diffMinutes <= 4) {
         const sentKey = `${REMINDER_STORAGE_KEY_PREFIX}${app.id}_${todayStr}`;
 
         // 1. Verificação rápida em localStorage local
@@ -174,7 +174,7 @@ export const automationEngine = {
         localStorage.setItem(sentKey, `DISPATCHING_${Date.now()}`);
 
         console.info(
-          `[automationEngine] Disparando lembrete de 2h antes (tpl-1) para ${app.patientName} às ${app.time}`
+          `[automationEngine] Disparando lembrete de 3min antes (tpl-1) para ${app.patientName} às ${app.time} (diff: ${diffMinutes} min)`
         );
 
         const success = await whatsappNotificationService.send2HourReminder({

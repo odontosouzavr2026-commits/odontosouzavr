@@ -940,3 +940,6 @@ export const brandColors = {
     - **Tela de Login (`LoginView.tsx`):** Removidos links de rodapé que apontavam para "Área do Paciente" e "Ver Site Institucional", focando a tela de login exclusivamente na autenticação do sistema.
     - **Menu Suspenso do Administrador (`AppLayout.tsx`):** Removidas as opções "Site Institucional" e "Área do Paciente (/minhaconta)", mantendo apenas "Dados da Clínica", "Ajuda" (com remoção da tag/badge "Suporte") e "Sair".
     - **Tela do Paciente (`MinhaContaView.tsx`):** Removidos atalhos e botões que direcionavam para "Painel Admin (/paineladmin)" e "Site da Clínica" na sidebar desktop, drawer mobile e menu suspenso de perfil.
+  - **Ajuste da Janela de Disparo do Lembrete de Consulta para Testes:**
+    - Em `automationEngine.ts`, alterada a janela de verificação de 2 horas (105-135 minutos) para **3 minutos antes da consulta** (`diffMinutes >= 0 && diffMinutes <= 4`), permitindo testes em tempo real de agendamento e entrega pelo WhatsApp com botões SIM/NÃO.
+    - Intervalo de execução do motor reduzido para 15 segundos para resposta imediata durante os testes.

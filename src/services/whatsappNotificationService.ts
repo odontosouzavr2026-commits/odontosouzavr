@@ -348,8 +348,8 @@ export const whatsappNotificationService = {
         await supabase.from('auditoria_logs').insert({
           entidade: 'agendamentos',
           entidade_id: params.agendamentoId || null,
-          acao: 'DISPARO_WHATSAPP_LEMBRETE_2H',
-          detalhes: `Lembrete 2h antes (tpl-1) entregue para ${params.patientName} (${phone}) - Consulta às ${params.time}.`,
+          acao: 'DISPARO_WHATSAPP_LEMBRETE',
+          detalhes: `Lembrete (tpl-1) entregue para ${params.patientName} (${phone}) - Consulta às ${params.time}.`,
         });
       } catch (e) {}
 
@@ -361,8 +361,8 @@ export const whatsappNotificationService = {
         new CustomEvent('app_toast', {
           detail: {
             type: 'success',
-            title: 'Lembrete (2h) Enviado! 📲',
-            message: `Lembrete de 2 horas antes entregue para ${params.patientName} via WhatsApp.`,
+            title: 'Lembrete WhatsApp Enviado! 📲',
+            message: `Lembrete de consulta entregue para ${params.patientName} via WhatsApp.`,
             duration: 5000,
           },
         })
