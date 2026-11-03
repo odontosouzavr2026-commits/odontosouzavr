@@ -12,6 +12,10 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Ativação e Configuração de Acesso Administrativo:**
+  - O usuário administrador `Everaldo Souza da Silva` (`everaldozs@gmail.com`) teve sua conta provisionada e sincronizada no Supabase Auth (`auth.users`) e na tabela `public.usuarios` com hash criptográfico bcrypt (`pgcrypto`).
+  - O fluxo de login (`salvar_usuario_sistema` no modo `login`) foi testado e validado via RPC com sucesso total.
+
 - **Limpeza de Logs de Console e Resiliência de Sincronização:**
   - **Eliminação de Erros de WebSocket (`wss://painelsupabase...`):** Como o servidor VPS do Supabase não possui o gateway de WebSocket/Realtime (porta 4000) exposto e roteado pelo proxy HTTPS na porta 443, as conexões de canal realtime foram substituídas por polling resiliente HTTPS a cada 15s (`InstitucionalAgendaSection.tsx`) e condicionadas à flag `VITE_ENABLE_SUPABASE_WEBSOCKET === 'true'` em `NotificationContext.tsx`. A sincronização de abas e dados permanece 100% ativa via HTTPS REST e `BroadcastChannel`.
   - **Silenciamento de Logs Informativos em Produção:** O log de eleição de abas do motor de agendamento (`[automationEngine] Esta aba foi eleita Líder...`) foi restrito para execução exclusiva em ambiente de desenvolvimento (`import.meta.env?.DEV`).
