@@ -29,18 +29,22 @@ import { PatientModal } from '../forms/PatientModal';
 import { BudgetModal } from '../forms/BudgetModal';
 import { AgendaDoDiaModal } from './AgendaDoDiaModal';
 import { PatientAppointment, AppointmentStatus } from '../../types/dashboard';
+import { PacienteItem } from '../../types/pacientes';
 import { agendaService } from '../../services/agendaService';
+import { pacientesService } from '../../services/pacientesService';
 import { dashboardService, DashboardMetricsData, DashboardChartData } from '../../services/dashboardService';
 import { scrollToTop } from '../../utils/scrollUtils';
 
 interface DashboardViewProps {
   forceMobileView?: boolean;
   onNavigate?: (path: string) => void;
+  onNavigateToAtendimento?: (patient?: PacienteItem) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   forceMobileView = false,
   onNavigate,
+  onNavigateToAtendimento,
 }) => {
   // Modal states
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
@@ -513,8 +517,73 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onNavigateToAgenda={() => {
           if (onNavigate) onNavigate('agenda');
         }}
-        onNavigateToAtendimento={() => {
-          if (onNavigate) onNavigate('atendimento');
+        onNavigateToAtendimento={async (app) => {
+          if (!app) {
+            if (onNavigateToAtendimento) onNavigateToAtendimento();
+            else if (onNavigate) onNavigate('atendimento');
+            return;
+          }
+
+          // 1. Atualiza status no banco para 'em_atendimento' se não estiver concluído
+          if (app.id && !app.status?.toLowerCase().includes('conclu')) {
+            try {
+              await agendaService.updateStatus(app.id, 'em_atendimento');
+            } catch (e) {
+              console.warn('Erro ao atualizar status do agendamento:', e);
+            }
+          }
+
+          // 2. Busca o paciente correspondente
+          let matchedPatient: PacienteItem | undefined = undefined;
+          try {
+            const pacientes = await pacientesService.getPacientes();
+            matchedPatient = pacientes.find(
+              (p) =>
+                (p.name && p.name.toLowerCase().trim() === (app.name || '').toLowerCase().trim()) ||
+                (app.chartNumber && p.code && p.code.toLowerCase().includes(app.chartNumber.replace('#', '').toLowerCase())) ||
+                p.id === app.id
+            );
+          } catch (err) {
+            console.warn('Erro ao buscar paciente:', err);
+          }
+
+          const initials = (app.initials || app.name || 'PA')
+            .split(' ')
+            .map((n: string) => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+
+          const patientToSend: PacienteItem & { agendamentoId?: string } = {
+            ...(matchedPatient || {
+              id: app.id || '40000000-0000-0000-0000-000000000001',
+              code: app.chartNumber || `#${(app.id || '4000').slice(0, 4).toUpperCase()}`,
+              name: app.name || 'Paciente',
+              initials,
+              cpf: 'Não informado',
+              birthDate: '1990-01-01',
+              age: 34,
+              insurance: 'particular',
+              insuranceLabel: 'Particular',
+              whatsapp: '(66) 98445-4825',
+              status: 'ativo',
+              statusLabel: 'Ativo',
+              lastConsultation: {
+                date: 'Hoje',
+                time: app.time,
+                procedure: app.procedure || 'Consulta',
+                dentist: app.dentist || 'Dr. Frankisney B. Souza',
+                isToday: true,
+              },
+            }),
+            agendamentoId: app.id,
+          };
+
+          if (onNavigateToAtendimento) {
+            onNavigateToAtendimento(patientToSend);
+          } else if (onNavigate) {
+            onNavigate('atendimento');
+          }
         }}
       />
     </div>

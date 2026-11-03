@@ -19,7 +19,7 @@ interface AgendaDoDiaModalProps {
   onClose: () => void;
   appointments: PatientAppointment[];
   onNavigateToAgenda?: () => void;
-  onNavigateToAtendimento?: (appointmentId?: string) => void;
+  onNavigateToAtendimento?: (appointment: PatientAppointment) => void;
 }
 
 export const AgendaDoDiaModal: React.FC<AgendaDoDiaModalProps> = ({
@@ -49,10 +49,10 @@ export const AgendaDoDiaModal: React.FC<AgendaDoDiaModalProps> = ({
     }
   };
 
-  const handleStartAttendance = (appId: string) => {
+  const handleStartAttendance = (app: PatientAppointment) => {
     handleClose();
     if (onNavigateToAtendimento) {
-      onNavigateToAtendimento(appId);
+      onNavigateToAtendimento(app);
     }
   };
 
@@ -263,7 +263,7 @@ export const AgendaDoDiaModal: React.FC<AgendaDoDiaModalProps> = ({
                       {!isFinalizado && (
                         <button
                           type="button"
-                          onClick={() => handleStartAttendance(app.id)}
+                          onClick={() => handleStartAttendance(app)}
                           className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#005F73] hover:bg-[#004756] text-white transition-all cursor-pointer shadow-2xs flex items-center gap-1"
                           title="Iniciar atendimento deste paciente"
                         >

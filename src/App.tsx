@@ -374,6 +374,10 @@ export default function App() {
         {activePath === 'dashboard' && (
           <DashboardView
             onNavigate={(path) => handleNavigate(path)}
+            onNavigateToAtendimento={(p) => {
+              if (p) setSelectedPatient(p);
+              handleNavigate('atendimento');
+            }}
           />
         )}
         {activePath === 'agenda' && (

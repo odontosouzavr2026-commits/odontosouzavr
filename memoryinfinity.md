@@ -15,7 +15,14 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
 - **Nova Regra de Deploy Automático a Cada 5 Alterações (`.agents/rules/deploy.md`):**
   - **Cadência Obrigatória:** A cada lote de **5 (cinco) alterações/tarefas concluídas**, o assistente de IA deve automaticamente rodar a validação de build (`npm run build`), consolidar os commits e disparar o deploy para a branch `main` (Vercel).
   - **Deploy sob Demanda:** Permanece ativa a execução imediata de deploy sempre que solicitado expressamente pelo usuário (ex: *"faça o deploy"*).
-  - **Contador de Ciclo Ativo:** **Alteração 1 de 5** (Regra de Intervalo de 7 Dias para Pacientes).
+  - **Contador de Ciclo Ativo:** **Alteração 2 de 5** (Correção do botão "Atender" no Modal de Agenda do Dia).
+
+- **Correção do Botão "Atender" no Modal de Abertura da Agenda do Dia (`AgendaDoDiaModal.tsx` / `DashboardView.tsx` / `App.tsx`):**
+  - **Causa Raiz Identificada:** O botão *"Atender"* dentro do modal matinal chamava `onNavigate('atendimento')` sem repassar o objeto do paciente ou agendamento para o `App.tsx`. Com isso, `selectedPatient` permanecia `null` e a tela `AtendimentoView` abria no estado vazio (*"Nenhum Atendimento em Andamento / Cadeira Livre"*).
+  - **Solução Implementada:**
+    1. `AgendaDoDiaModal.tsx`: Passa o objeto completo `app: PatientAppointment` no callback `onNavigateToAtendimento(app)`.
+    2. `DashboardView.tsx`: Atualiza o status do agendamento no Supabase para `'em_atendimento'`, resolve os dados cadastrais do paciente (nome, prontuário, convênio, procedimento, telefone, etc.) e propaga `onNavigateToAtendimento(patientToSend)` para o componente pai.
+    3. `App.tsx`: Conecta a prop `onNavigateToAtendimento` no `DashboardView` definindo `setSelectedPatient(p)` e redirecionando para a tela de atendimento já com o paciente acomodado na cadeira clínica ativa.
 
 - **Regra Exclusiva de Agendamento para Pacientes (Limite Diário & Intervalo Mínimo de 7 Dias):**
   - **Regra de Negócio Implementada:**
