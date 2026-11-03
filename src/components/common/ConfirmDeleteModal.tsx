@@ -12,6 +12,8 @@ export interface ConfirmDeleteModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   isLoading?: boolean;
+  alertText?: string | React.ReactNode | false;
+  extraContent?: React.ReactNode;
 }
 
 export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
@@ -25,6 +27,8 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   confirmLabel = 'Sim, Excluir',
   cancelLabel = 'Cancelar',
   isLoading = false,
+  alertText = 'Esta ação liberará imediatamente o horário para nova marcação.',
+  extraContent,
 }) => {
   // Fecha com a tecla Esc
   useEffect(() => {
@@ -110,10 +114,15 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         )}
 
         {/* Alerta Adicional */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 font-medium">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>Esta ação liberará imediatamente o horário para nova marcação.</span>
-        </div>
+        {alertText !== false && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 font-medium">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{alertText}</span>
+          </div>
+        )}
+
+        {/* Conteúdo Extra (Ex: Notificação WhatsApp de Remarcação) */}
+        {extraContent}
 
         {/* Rodapé com Botões de Ação Padronizados */}
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">

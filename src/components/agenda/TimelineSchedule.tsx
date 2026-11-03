@@ -16,12 +16,14 @@ import {
   Calendar,
   Stethoscope,
   MessageSquare,
+  MessageCircle,
   Loader2,
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { agendaService } from '../../services/agendaService';
 import { ConfirmDeleteModal } from '../common/ConfirmDeleteModal';
 import { templateService } from '../../services/templateService';
+import { whatsappNotificationService } from '../../services/whatsappNotificationService';
 
 export interface TimelineSlot {
   id: string;
@@ -463,10 +465,45 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
         );
       }
 
-      toast.success(
-        'Horário Liberado com Sucesso',
-        `O agendamento de ${item.patientName} foi removido e o horário das ${item.time} está liberado para nova consulta.`
-      );
+      // 3. Notifica o paciente via WhatsApp orientando a entrar no sistema para escolher um novo horário
+      if (item.patientName) {
+        const appointmentDateStr = selectedDate
+          ? `${selectedDate.getDate()} de ${selectedDate.toLocaleString('pt-BR', { month: 'long' })} de ${selectedDate.getFullYear()}`
+          : 'data agendada';
+
+        const notif = await whatsappNotificationService.notifyAgendamentoCancelado({
+          pacienteId: item.pacienteId,
+          patientName: item.patientName,
+          phone: item.phone,
+          date: appointmentDateStr,
+          time: item.time,
+          procedure: item.procedure,
+          dentist: 'Dr. Frankisney B. Souza',
+        });
+
+        if (notif.success) {
+          toast.success(
+            'Agendamento Excluído & WhatsApp Enviado! 📲',
+            `Horário liberado e ${item.patientName} foi notificado(a) no WhatsApp com o link do sistema para marcar um novo horário.`
+          );
+        } else if (notif.whatsappUrl) {
+          toast.info(
+            'Agendamento Excluído com Sucesso',
+            `Horário liberado. Notificação pronta para ${item.patientName} no WhatsApp.`
+          );
+          window.open(notif.whatsappUrl, '_blank');
+        } else {
+          toast.success(
+            'Horário Liberado com Sucesso',
+            `O agendamento de ${item.patientName} foi removido e o horário das ${item.time} está liberado para nova consulta.`
+          );
+        }
+      } else {
+        toast.success(
+          'Horário Liberado com Sucesso',
+          `O agendamento foi removido e o horário das ${item.time} está liberado para nova consulta.`
+        );
+      }
 
       if (viewModalSlot?.id === item.id) {
         setViewModalSlot(null);
@@ -1131,6 +1168,26 @@ export const TimelineSchedule: React.FC<TimelineScheduleProps> = ({
         confirmLabel="Sim, Excluir Horário"
         cancelLabel="Cancelar"
         isLoading={isDeleting}
+        extraContent={
+          <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200/80 text-xs text-emerald-950 flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+              <MessageCircle className="w-4 h-4 text-white" />
+            </div>
+            <div className="space-y-0.5 flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                  Notificação no WhatsApp
+                </span>
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-full font-semibold">
+                  Remarcação Ativa
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-800 leading-snug">
+                Após a exclusão, o paciente <strong>{deleteConfirmSlot?.patientName || 'cadastrado'}</strong> será automaticamente notificado no WhatsApp com o link do sistema para escolher e agendar um novo horário.
+              </p>
+            </div>
+          </div>
+        }
       />
     </div>
   );

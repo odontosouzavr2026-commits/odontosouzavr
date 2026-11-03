@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CheckCircle,
+  Banknote,
 } from 'lucide-react';
 import { ClinicalPatientBanner } from './ClinicalPatientBanner';
 import { OdontogramView } from './OdontogramView';
@@ -79,6 +80,7 @@ const mapPacienteToActiveInfo = (p: PacienteItem): ActivePatientInfo => {
     alerts,
     allergies: p.allergies,
     clinicalNotes: p.clinicalNotes,
+    agendamentoId: (p as any).agendamentoId,
   };
 };
 
@@ -211,6 +213,7 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
   const [isConclusionModalOpen, setIsConclusionModalOpen] = useState(false);
   const [isSubmittingConclusion, setIsSubmittingConclusion] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'Cartão' | 'Dinheiro' | 'Convênio'>('PIX');
+  const [valorPagoDinheiro, setValorPagoDinheiro] = useState<string>('');
   const [sendWhatsApp, setSendWhatsApp] = useState(true);
   const [mobileTab, setMobileTab] = useState<'odontograma' | 'procedimentos' | 'evolucao' | 'rx' | 'resumo'>('odontograma');
 
@@ -352,26 +355,65 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
     setIsSubmittingConclusion(true);
     try {
       // 1. Atualizar o agendamento no banco de dados para 'Concluído'
-      const matchedApp = agendamentosList.find(
-        (a) =>
-          a.patientName.toLowerCase() === patient.name.toLowerCase() ||
-          a.id === patient.id ||
-          a.status === 'Em Atendimento'
-      );
-      if (matchedApp && matchedApp.id && !matchedApp.id.startsWith('mock-')) {
-        await agendaService.updateStatus(matchedApp.id, 'Concluído').catch((err) => {
+      // Identifica com precisão o agendamento da sessão atual:
+      let targetAppId = (patient as any)?.agendamentoId;
+
+      if (!targetAppId) {
+        // Busca agendamento do paciente que esteja ativo 'Em Atendimento' ou 'em_atendimento'
+        const inAttendanceApp = agendamentosList.find(
+          (a) =>
+            a.status?.toLowerCase().includes('atendimento') &&
+            (a.pacienteId === patient.id ||
+              a.patientName.toLowerCase().trim() === patient.name.toLowerCase().trim())
+        );
+        if (inAttendanceApp) {
+          targetAppId = inAttendanceApp.id;
+        }
+      }
+
+      if (!targetAppId) {
+        // Fallback: qualquer agendamento em atendimento deste paciente
+        const matchedByName = agendamentosList.find(
+          (a) =>
+            a.patientName.toLowerCase().trim() === patient.name.toLowerCase().trim() &&
+            !a.status?.toLowerCase().includes('conclu')
+        );
+        if (matchedByName) {
+          targetAppId = matchedByName.id;
+        }
+      }
+
+      if (targetAppId && !targetAppId.startsWith('mock-')) {
+        await agendaService.updateStatus(targetAppId, 'Concluído').catch((err) => {
           console.warn('[handleConcludeAttendance] Aviso ao atualizar agenda:', err);
         });
       }
 
+      // Adicional de segurança no Supabase: encerra qualquer outro agendamento 'em_atendimento'
+      try {
+        await supabase
+          .from('agendamentos')
+          .update({ status: 'Concluído', atualizado_em: new Date().toISOString() })
+          .ilike('status', '%atendimento%');
+      } catch (errSup) {
+        console.warn('[handleConcludeAttendance] Aviso ao finalizar status no Supabase:', errSup);
+      }
+
       // 2. Lançar no Financeiro / Caixa
+      const pagoNum = parseFloat(valorPagoDinheiro.replace(',', '.')) || valorFinal;
+      const trocoNum = paymentMethod === 'Dinheiro' && pagoNum > valorFinal ? pagoNum - valorFinal : 0;
+      const detalhePagamento =
+        paymentMethod === 'Dinheiro'
+          ? `Dinheiro (Valor Pago: R$ ${pagoNum.toFixed(2)}${trocoNum > 0 ? `, Troco: R$ ${trocoNum.toFixed(2)}` : ''})`
+          : paymentMethod;
+
       if (valorFinal > 0 || procedures.length > 0) {
         await financeiroService
           .saveTransacao({
             type: 'receita',
             category: 'Procedimentos Odontológicos',
             entityName: patient.name,
-            entityDetail: procedures.map((p) => p.name).join(', ') || 'Procedimentos Clínicos',
+            entityDetail: `${procedures.map((p) => p.name).join(', ') || 'Procedimentos Clínicos'} - ${detalhePagamento}`,
             amount: valorFinal,
             paymentMethod: paymentMethod,
             status: 'pago',
@@ -394,7 +436,7 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
                   procedures.length > 0
                     ? procedures.map((p) => `${p.tooth ? p.tooth + ': ' : ''}${p.name}`).join('; ')
                     : 'Consulta / Avaliação Clínica'
-                }. Valor: R$ ${valorFinal.toFixed(2)}.`,
+                }. Valor: R$ ${valorFinal.toFixed(2)} (${detalhePagamento}).`,
                 data_hora: new Date().toISOString(),
               },
             ]);
@@ -406,7 +448,7 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
       // 4. Liberar a Cadeira Clínica e atualizar a Fila do Dia
       setQueuePatients((prev) =>
         prev.map((q) => {
-          if (q.name.toLowerCase() === patient.name.toLowerCase()) {
+          if (q.name.toLowerCase() === patient.name.toLowerCase() || (targetAppId && q.id === targetAppId)) {
             return { ...q, status: 'Confirmado' };
           }
           return q;
@@ -417,21 +459,29 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
       setToastMessage(
         `Atendimento de ${patient.name} concluído com sucesso! Lançamento de R$ ${valorFinal.toFixed(
           2
-        )} registrado no Caixa e cadeira liberada.`
+        )} registrado no Caixa e horário finalizado na agenda.`
       );
-      setTimeout(() => setToastMessage(null), 5000);
+      setTimeout(() => setToastMessage(null), 4000);
 
       // Fechar modal
       setIsConclusionModalOpen(false);
 
-      // Avançar fila para o próximo paciente (ou exibir tela de cadeira livre)
-      handleNextPatient();
+      // 6. Retorna imediatamente para a agenda conforme solicitado pelo usuário
+      if (onViewSchedule) {
+        onViewSchedule();
+      } else {
+        handleNextPatient();
+      }
     } catch (err) {
       console.error('[handleConcludeAttendance] Erro:', err);
       setToastMessage('Atendimento concluído e registrado no prontuário.');
       setTimeout(() => setToastMessage(null), 4000);
       setIsConclusionModalOpen(false);
-      handleNextPatient();
+      if (onViewSchedule) {
+        onViewSchedule();
+      } else {
+        handleNextPatient();
+      }
     } finally {
       setIsSubmittingConclusion(false);
     }
@@ -847,6 +897,95 @@ export const AtendimentoView: React.FC<AtendimentoViewProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Campo de Valor Pago em Dinheiro e Cálculo Automático de Troco */}
+              {paymentMethod === 'Dinheiro' && (
+                <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/90 space-y-2.5 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                      <Banknote className="w-4 h-4 text-emerald-700" />
+                      <span>Valor Pago pelo Paciente em Dinheiro:</span>
+                    </label>
+                    <span className="text-[11px] font-semibold text-amber-800">
+                      Total: R$ {valorFinal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                      R$
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={valorPagoDinheiro}
+                      onChange={(e) => setValorPagoDinheiro(e.target.value)}
+                      placeholder={valorFinal > 0 ? valorFinal.toFixed(2) : '0,00'}
+                      className="w-full pl-9 pr-24 py-2 bg-white border border-amber-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#005F73] focus:border-transparent transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setValorPagoDinheiro(valorFinal.toFixed(2))}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-[11px] font-bold text-[#005F73] bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition cursor-pointer"
+                    >
+                      Valor Exato
+                    </button>
+                  </div>
+
+                  {/* Atalhos Rápidos de Cédulas */}
+                  {valorFinal > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10px] text-amber-800 font-semibold">Cédulas:</span>
+                      {[20, 50, 100, 150, 200].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setValorPagoDinheiro(val.toFixed(2))}
+                          className="px-2 py-0.5 text-[10px] font-bold bg-white hover:bg-amber-100/70 border border-amber-200 rounded-md text-amber-900 transition cursor-pointer"
+                        >
+                          R$ {val}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Cálculo do Troco */}
+                  {(() => {
+                    const pagoNum = parseFloat(valorPagoDinheiro.replace(',', '.')) || 0;
+                    if (pagoNum > 0 && valorFinal > 0) {
+                      if (pagoNum > valorFinal) {
+                        const troco = pagoNum - valorFinal;
+                        return (
+                          <div className="flex items-center justify-between p-2.5 bg-emerald-100/80 rounded-lg border border-emerald-300 text-xs">
+                            <span className="font-bold text-emerald-950 flex items-center gap-1">
+                              💵 Troco a devolver ao paciente:
+                            </span>
+                            <span className="text-sm font-extrabold text-emerald-900">
+                              R$ {troco.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      } else if (pagoNum === valorFinal) {
+                        return (
+                          <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-[11px] text-emerald-800 font-medium">
+                            ✓ Pagamento exato (sem troco a devolver).
+                          </div>
+                        );
+                      } else {
+                        const falta = valorFinal - pagoNum;
+                        return (
+                          <div className="flex items-center justify-between p-2 bg-rose-50 rounded-lg border border-rose-200 text-[11px] text-rose-800 font-semibold">
+                            <span>Valor informado menor que o total a faturar:</span>
+                            <span>Faltam R$ {falta.toFixed(2)}</span>
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
 
               {/* Opção de Envio WhatsApp */}
               <label className="flex items-center gap-2 p-2.5 bg-cyan-50/60 rounded-lg border border-cyan-200/60 text-xs text-slate-700 cursor-pointer">

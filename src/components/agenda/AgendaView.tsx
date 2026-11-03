@@ -593,11 +593,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     try {
       await agendaService.deleteAgendamento(slotToDelete.id);
       setSupabaseAppointments((prev) => prev.filter((a) => a.id !== slotToDelete.id));
-      showToast('Agendamento excluído do Supabase e horário liberado!');
       await loadAppointmentsFromSupabase();
     } catch (err) {
       console.error('Erro ao excluir do Supabase:', err);
-      showToast('Erro ao excluir agendamento do Supabase.');
     }
   };
 
@@ -633,26 +631,29 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         .join('')
         .toUpperCase();
 
-      const patientToSend: PacienteItem = matchedPatient || {
-        id: slot.pacienteId || slot.id || '40000000-0000-0000-0000-000000000001',
-        code: `#${(slot.pacienteId || slot.id || '4000').slice(0, 4).toUpperCase()}`,
-        name: slot.patientName || 'Everaldo Souza da Silva',
-        initials,
-        cpf: slot.cpf || '123.456.789-01',
-        birthDate: '1985-05-15',
-        age: 39,
-        insurance: 'particular',
-        insuranceLabel: slot.insurance || 'Particular',
-        whatsapp: slot.phone || '(66) 98445-4825',
-        status: 'ativo',
-        statusLabel: 'Ativo',
-        lastConsultation: {
-          date: 'Hoje',
-          time: slot.time,
-          procedure: slot.procedure || 'Consulta Inicial',
-          dentist: 'Dr. Frankisney B. Souza',
-          isToday: true,
-        },
+      const patientToSend: PacienteItem & { agendamentoId?: string } = {
+        ...(matchedPatient || {
+          id: slot.pacienteId || slot.id || '40000000-0000-0000-0000-000000000001',
+          code: `#${(slot.pacienteId || slot.id || '4000').slice(0, 4).toUpperCase()}`,
+          name: slot.patientName || 'Everaldo Souza da Silva',
+          initials,
+          cpf: slot.cpf || '123.456.789-01',
+          birthDate: '1985-05-15',
+          age: 39,
+          insurance: 'particular',
+          insuranceLabel: slot.insurance || 'Particular',
+          whatsapp: slot.phone || '(66) 98445-4825',
+          status: 'ativo',
+          statusLabel: 'Ativo',
+          lastConsultation: {
+            date: 'Hoje',
+            time: slot.time,
+            procedure: slot.procedure || 'Consulta Inicial',
+            dentist: 'Dr. Frankisney B. Souza',
+            isToday: true,
+          },
+        }),
+        agendamentoId: slot.id,
       };
 
       if (onNavigateToAtendimento) {

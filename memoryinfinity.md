@@ -12,6 +12,19 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Métrica e Rastreamento de Visitas (Umami Cloud Analytics):**
+  - Adicionado o script oficial do Umami Analytics em `index.html` com o ID do site `c3383492-2d40-436c-994c-fa707c91cca3` (`https://cloud.umami.is/script.js`), permitindo a contagem e auditoria de visitas em tempo real tanto no site institucional quanto na aplicação web.
+
+- **Modal de Encerramento do Atendimento e Liberação de Cadeira (`AtendimentoView.tsx`):**
+  - **Pagamento em Dinheiro & Troco:** Quando a opção "Dinheiro" é selecionada no modal de conclusão, é exibido o campo numérico para digitação do valor pago pelo paciente, atalhos rápidos de cédulas (R$ 20, R$ 50, R$ 100, R$ 150, R$ 200, Valor Exato) e cálculo automático de troco em tempo real.
+  - **Retorno Imediato à Agenda:** Ao clicar em "Confirmar & Liberar Cadeira", o sistema conclui o procedimento, lança a receita no Financeiro/Caixa com o detalhe do pagamento e redireciona automaticamente o usuário para a tela da Agenda Clínica (`onViewSchedule`).
+  - **Sincronização de Conclusão na Linha do Tempo:** Corrigida a resolução do agendamento vinculado repassando `agendamentoId` e priorizando agendamentos em atendimento (`em_atendimento`), garantindo que o status no Supabase seja gravado como `'Concluído'` e não permaneça travado como *"Em Atendimento"* na agenda do doutor.
+
+- **Notificação Automática via WhatsApp ao Excluir Agendamento na Agenda da Clínica:**
+  - Implementado em `src/components/agenda/TimelineSchedule.tsx`, `ConfirmDeleteModal.tsx` e `whatsappNotificationService.ts`.
+  - Ao clicar no botão de excluir (lixeira vermelha) na linha do tempo da clínica, o modal de confirmação exibe um card de destaque informando que o paciente será automaticamente notificado no WhatsApp para remarcação.
+  - Ao confirmar a exclusão (`handleConfirmDelete`), o agendamento é removido no Supabase, a vaga é liberada instantaneamente e a rotina `notifyAgendamentoCancelado` envia mensagem personalizada no WhatsApp do paciente com o link direto do sistema (`https://app.odontosouzavr.com.br`) para escolha de um novo horário, além dos telefones da clínica e registro no log de auditoria.
+
 - **Exceção de Agendamento Múltiplo para Demonstração Clínica:**
   - O usuário de teste do portal do paciente (`everaldozspaciente@gmail.com` / ID `1b594c6e-400f-4ca7-9a19-282de3ef8832`) foi homologado com permissão para realizar múltiplos agendamentos no mesmo dia ou em datas consecutivas sem bloqueio pela regra de limite diário.
   - A regra clínica estrita (limite de 1 consulta ativa por dia) permanece 100% ativa e mandatória para todos os demais pacientes e cadastros reais do sistema.

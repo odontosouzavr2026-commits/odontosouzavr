@@ -106,6 +106,25 @@ export const buildEncaixePromovidoMessage = (params: {
   return `Olá, *${firstName}*! 🎉 Boas notícias!\n\nUma vaga abriu na agenda e você foi adiantado(a) da *Fila de Encaixe* prioritária da clínica Odonto Souza! 🦷✨\n\nConfira os dados do seu agendamento:\n📅 Data: *${formattedDate}*\n⏰ Horário: *${params.time}*\n👨‍⚕️ Profissional: *${dentistName}*\n📋 Procedimento: *${params.procedure || 'Consulta Odontológica'}*\n📍 Local: *Clínica Odonto Souza*\n\nSeu agendamento já está confirmado. Esperamos você na clínica! Se precisar de algo, responda a esta mensagem.`;
 };
 
+/**
+ * Mensagem disparada quando um agendamento é excluído pelo doutor/clínica,
+ * orientando o paciente a acessar o portal para escolher um novo horário
+ */
+export const buildAgendamentoCanceladoMessage = (params: {
+  patientName: string;
+  date?: string;
+  time?: string;
+  dentist?: string;
+  procedure?: string;
+}): string => {
+  const firstName = params.patientName.split(' ')[0] || params.patientName;
+  const formattedDate = params.date ? formatAppointmentDate(params.date) : 'sua data agendada';
+  const dentistName = params.dentist || 'Dr. Frankisney B. Souza';
+  const timeStr = params.time ? ` às *${params.time}*` : '';
+
+  return `Olá, *${firstName}*! Tudo bem? 🦷\n\nInformamos que o seu agendamento de *${params.procedure || 'Consulta Odontológica'}* com *${dentistName}*, previsto para *${formattedDate}*${timeStr}, precisou ser desmarcado pela clínica.\n\n📲 *Por favor, acesse o nosso sistema para escolher um novo dia e horário conveniente para o seu atendimento:*\n👉 https://app.odontosouzavr.com.br\n\nCaso tenha alguma dúvida ou prefira falar com nossa equipe, responda a esta mensagem ou ligue para nossos telefones fixos: *(66) 3554-2633* ou *(66) 3554-1390*.\n\n*Odonto Souza — Cuidando do seu sorriso com excelência.* ✨`;
+};
+
 export const whatsappNotificationService = {
   /**
    * Agenda e dispara a confirmação de agendamento via WhatsApp exatamente após 5 segundos
@@ -620,6 +639,107 @@ export const whatsappNotificationService = {
     } catch (err: any) {
       console.error('[whatsappNotificationService.notifyEncaixePromovido] Erro ao notificar paciente de encaixe:', err);
       return false;
+    }
+  },
+
+  /**
+   * Notifica o paciente via WhatsApp quando o doutor/clínica exclui um agendamento,
+   * orientando-o a acessar o sistema para marcar um novo horário conveniente.
+   */
+  async notifyAgendamentoCancelado(params: {
+    pacienteId?: string;
+    patientName: string;
+    phone?: string;
+    date?: string;
+    time?: string;
+    dentist?: string;
+    procedure?: string;
+  }): Promise<{ success: boolean; whatsappUrl?: string; phone?: string; message?: string }> {
+    try {
+      let phone = params.phone;
+
+      // Se não tiver telefone ou for curto, busca dinamicamente no Supabase
+      const cleanDigits = (phone || '').replace(/\D/g, '');
+      if (cleanDigits.length < 8) {
+        if (params.pacienteId) {
+          const { data } = await supabase
+            .from('pacientes')
+            .select('telefone')
+            .eq('id', params.pacienteId)
+            .maybeSingle();
+          if (data?.telefone) phone = data.telefone;
+        }
+
+        if (!phone && params.patientName) {
+          const { data } = await supabase
+            .from('pacientes')
+            .select('telefone')
+            .ilike('nome', params.patientName.trim())
+            .maybeSingle();
+          if (data?.telefone) phone = data.telefone;
+        }
+      }
+
+      const validDigits = (phone || '').replace(/\D/g, '');
+      let fullPhoneWithCountry = validDigits;
+      if (fullPhoneWithCountry.length === 10 || fullPhoneWithCountry.length === 11) {
+        fullPhoneWithCountry = '55' + fullPhoneWithCountry;
+      }
+
+      const messageText = buildAgendamentoCanceladoMessage({
+        patientName: params.patientName,
+        date: params.date,
+        time: params.time,
+        dentist: params.dentist || 'Dr. Frankisney B. Souza',
+        procedure: params.procedure || 'Consulta Odontológica',
+      });
+
+      const waUrl = fullPhoneWithCountry
+        ? `https://wa.me/${fullPhoneWithCountry}?text=${encodeURIComponent(messageText)}`
+        : undefined;
+
+      if (!phone || validDigits.length < 8) {
+        console.warn('[whatsappNotificationService] Paciente sem telefone cadastrado para aviso de cancelamento:', params.patientName);
+        return { success: false, whatsappUrl: waUrl, message: messageText };
+      }
+
+      let apiSuccess = false;
+      try {
+        await evolutionApiService.sendTextMessage(phone, messageText);
+        apiSuccess = true;
+      } catch (sendErr) {
+        console.warn('[whatsappNotificationService] Falha ao enviar via Evolution API:', sendErr);
+      }
+
+      // Registra log do disparo
+      templateService.logDispatch({
+        id: `dsp-canc-${Date.now()}`,
+        templateId: 'tpl-agendamento-remarcacao',
+        templateName: 'Aviso de Remarcação de Horário Excluído',
+        recipientName: params.patientName,
+        phone,
+        sentAt: new Date().toISOString(),
+        status: apiSuccess ? 'sent' : 'failed',
+        channel: 'evolution_api',
+      });
+
+      const metrics = templateService.getMetrics();
+      metrics.sentToday = (metrics.sentToday || 0) + 1;
+      localStorage.setItem('odonto_whatsapp_metrics_v2', JSON.stringify(metrics));
+
+      // Grava auditoria permanente no Supabase
+      try {
+        await supabase.from('auditoria_logs').insert({
+          entidade: 'agendamentos',
+          acao: 'EXCLUSAO_NOTIFICADA_WHATSAPP',
+          detalhes: `Agendamento de ${params.patientName} (${phone}) para ${params.date || 'data agendada'} às ${params.time || ''} foi excluído e o paciente foi notificado no WhatsApp com link do sistema para remarcação.`,
+        });
+      } catch (e) {}
+
+      return { success: apiSuccess, whatsappUrl: waUrl, phone, message: messageText };
+    } catch (err: any) {
+      console.error('[whatsappNotificationService.notifyAgendamentoCancelado] Erro:', err);
+      return { success: false };
     }
   },
 };

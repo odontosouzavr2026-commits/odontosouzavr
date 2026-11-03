@@ -47,6 +47,7 @@ export interface MedicalAlert {
 
 export interface ActivePatientInfo {
   id: string;
+  agendamentoId?: string;
   name: string;
   prontuario: string;
   cpf: string;
