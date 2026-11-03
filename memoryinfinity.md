@@ -12,6 +12,11 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Nova Regra de Deploy Automático a Cada 5 Alterações (`.agents/rules/deploy.md`):**
+  - **Cadência Obrigatória:** A cada lote de **5 (cinco) alterações/tarefas concluídas**, o assistente de IA deve automaticamente rodar a validação de build (`npm run build`), consolidar os commits e disparar o deploy para a branch `main` (Vercel).
+  - **Deploy sob Demanda:** Permanece ativa a execução imediata de deploy sempre que solicitado expressamente pelo usuário (ex: *"faça o deploy"*).
+  - **Contador de Ciclo Ativo:** O ciclo atual foi resetado para **0 de 5 alterações** após o último deploy (`ac11938`).
+
 - **Integração em Tempo Real dos Logs do Sistema na Tela de Auditoria (`AuditoriaView.tsx` & `auditoriaService.ts`):**
   - **Problema:** A tela *"Auditoria e Registro de Ações"* exibia dados estáticos/mockados (`INITIAL_AUDIT_LOGS`) datados de 28/10/2026, ignorando as dezenas de eventos reais registrados continuamente na tabela `auditoria_logs` do Supabase.
   - **Implementação do `auditoriaService.ts`:**
