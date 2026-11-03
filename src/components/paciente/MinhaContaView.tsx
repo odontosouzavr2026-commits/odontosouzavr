@@ -325,7 +325,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
       return;
     }
 
-    // Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia.
+    // Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia e nem em intervalo < 7 dias.
     // Exceção Homologada: Usuário de teste 'everaldozspaciente@gmail.com' pode agendar livremente para testes e apresentações.
     const isTestPatient =
       patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
@@ -334,14 +334,16 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
 
     if (!isTestPatient) {
       if (patientData?.id) {
-        const conflito = await agendaService.verificarConflitoDuploAgendamento(
+        const regra = await agendaService.verificarRegraAgendamentoPaciente(
           patientData.id,
-          selectedDay.dateKey
+          selectedDay.dateKey,
+          patientData.email || currentUser?.email,
+          currentAppointment?.id
         );
-        if (!conflito.permitido) {
+        if (!regra.permitido) {
           toast.warning(
-            'Limite de 1 Agendamento por Dia',
-            conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
+            regra.tipoBloqueio === 'mesmo_dia' ? 'Limite de 1 Consulta por Dia' : 'Intervalo Mínimo de 7 Dias',
+            regra.motivo || 'Regra clínica exclusiva de pacientes: Não é permitido agendar em intervalo menor que 7 dias entre consultas.'
           );
           return;
         }
@@ -354,7 +356,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
           currentAppointment.status.toLowerCase().includes('desmarc');
         if (!isConcluido && !isDesmarcado) {
           toast.warning(
-            'Limite de 1 Agendamento por Dia',
+            'Limite de 1 Consulta por Dia',
             'Regra Clínica: Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
           );
           return;

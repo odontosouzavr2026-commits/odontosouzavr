@@ -258,6 +258,143 @@ export const agendaService = {
     }
   },
 
+  /**
+   * Regra Exclusiva para o Portal do Paciente:
+   * 1. Um paciente não pode marcar dois horários no mesmo dia.
+   * 2. Um paciente não pode marcar duas consultas em um intervalo inferior a 7 dias (mínimo de 7 dias entre consultas).
+   * 3. Exceção estrita: Não se aplica ao paciente de teste homologado 'everaldozspaciente@gmail.com'.
+   * 4. Exclusivo para pacientes: Doutores e administradores na agenda da clínica são isentos dessa regra.
+   */
+  async verificarRegraAgendamentoPaciente(
+    pacienteNomeOuId: string,
+    targetDate: string | Date,
+    pacienteEmail?: string,
+    currentAgendamentoId?: string
+  ): Promise<{
+    permitido: boolean;
+    motivo?: string;
+    tipoBloqueio?: 'mesmo_dia' | 'intervalo_7_dias';
+    diasConflito?: number;
+    dataConflito?: string;
+    consultaExistenteId?: string;
+  }> {
+    try {
+      const cleanSearch = (pacienteNomeOuId || '').toLowerCase().trim();
+      const cleanEmail = (pacienteEmail || '').toLowerCase().trim();
+
+      // Exceção Homologada: Usuário de teste 'everaldozspaciente@gmail.com' pode agendar livremente
+      const isTestPatient =
+        cleanEmail === 'everaldozspaciente@gmail.com' ||
+        cleanSearch === 'everaldozspaciente@gmail.com' ||
+        cleanSearch === '1b594c6e-400f-4ca7-9a19-282de3ef8832' ||
+        pacienteNomeOuId === '1b594c6e-400f-4ca7-9a19-282de3ef8832';
+
+      if (isTestPatient) {
+        return { permitido: true };
+      }
+
+      // Normaliza a data alvo para timestamp do início do dia
+      let targetD: Date;
+      if (typeof targetDate === 'string') {
+        if (targetDate.includes('-')) {
+          const [y, m, d] = targetDate.split('T')[0].split('-').map(Number);
+          targetD = new Date(y, m - 1, d);
+        } else {
+          targetD = new Date(targetDate);
+        }
+      } else {
+        targetD = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      }
+
+      if (isNaN(targetD.getTime())) {
+        return { permitido: true };
+      }
+
+      const targetMidnight = new Date(targetD.getFullYear(), targetD.getMonth(), targetD.getDate()).getTime();
+
+      // Busca todos os agendamentos cadastrados
+      const todos = await this.getAgendamentos();
+
+      // Filtra agendamentos do paciente que estejam ativos (ignora desmarcados e cancelados)
+      const agendamentosPaciente = todos.filter((a) => {
+        if (currentAgendamentoId && a.id === currentAgendamentoId) return false;
+        const matchId = a.pacienteId && a.pacienteId === pacienteNomeOuId;
+        const matchName = a.patientName && a.patientName.toLowerCase().trim() === cleanSearch;
+        if (!matchId && !matchName) return false;
+
+        const st = (a.status || '').toLowerCase();
+        const isCancelado = st.includes('cancel') || st.includes('desmarc') || st.includes('falta');
+        return !isCancelado;
+      });
+
+      if (agendamentosPaciente.length === 0) {
+        return { permitido: true };
+      }
+
+      for (const a of agendamentosPaciente) {
+        let appD: Date | null = null;
+        if (a.dataHoraInicio) {
+          const parsed = new Date(a.dataHoraInicio);
+          if (!isNaN(parsed.getTime())) {
+            appD = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+          }
+        }
+
+        if (!appD && a.date) {
+          if (a.date.includes('-')) {
+            const [y, m, d] = a.date.split('T')[0].split('-').map(Number);
+            appD = new Date(y, m - 1, d);
+          } else {
+            const matchDia = a.date.match(/(\d{1,2})/);
+            if (matchDia) {
+              const dia = parseInt(matchDia[1], 10);
+              appD = new Date(2026, 10, dia);
+            }
+          }
+        }
+
+        if (!appD || isNaN(appD.getTime())) continue;
+
+        const appMidnight = new Date(appD.getFullYear(), appD.getMonth(), appD.getDate()).getTime();
+        const diffMs = Math.abs(targetMidnight - appMidnight);
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const dataFormatada = `${pad(appD.getDate())}/${pad(appD.getMonth() + 1)}/${appD.getFullYear()}`;
+
+        // 1. Regra de mesmo dia
+        if (diffDays === 0) {
+          return {
+            permitido: false,
+            tipoBloqueio: 'mesmo_dia',
+            diasConflito: 0,
+            dataConflito: dataFormatada,
+            consultaExistenteId: a.id,
+            motivo: `Limite de 1 Consulta por Dia: Você já possui uma consulta marcada para este dia (${dataFormatada}). Não é permitido agendar dois horários na mesma data.`
+          };
+        }
+
+        // 2. Regra de intervalo de 7 dias
+        if (diffDays < 7) {
+          const diasFaltantes = 7 - diffDays;
+          return {
+            permitido: false,
+            tipoBloqueio: 'intervalo_7_dias',
+            diasConflito: diffDays,
+            dataConflito: dataFormatada,
+            consultaExistenteId: a.id,
+            motivo: `Intervalo Mínimo de 7 Dias: Você já possui uma consulta marcada para ${dataFormatada}. O intervalo mínimo entre consultas para pacientes é de 7 dias (faltam ${diasFaltantes} dia(s) para poder agendar outra consulta).`
+          };
+        }
+      }
+
+      return { permitido: true };
+    } catch (err) {
+      console.warn('[agendaService.verificarRegraAgendamentoPaciente] Erro:', err);
+      return { permitido: true };
+    }
+  },
+
   async saveAgendamento(
     agendamento: Partial<AgendaAppointmentItem> & {
       pacienteId?: string;

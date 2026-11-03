@@ -15,7 +15,16 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
 - **Nova Regra de Deploy Automático a Cada 5 Alterações (`.agents/rules/deploy.md`):**
   - **Cadência Obrigatória:** A cada lote de **5 (cinco) alterações/tarefas concluídas**, o assistente de IA deve automaticamente rodar a validação de build (`npm run build`), consolidar os commits e disparar o deploy para a branch `main` (Vercel).
   - **Deploy sob Demanda:** Permanece ativa a execução imediata de deploy sempre que solicitado expressamente pelo usuário (ex: *"faça o deploy"*).
-  - **Contador de Ciclo Ativo:** O ciclo atual foi resetado para **0 de 5 alterações** após o último deploy (`ac11938`).
+  - **Contador de Ciclo Ativo:** **Alteração 1 de 5** (Regra de Intervalo de 7 Dias para Pacientes).
+
+- **Regra Exclusiva de Agendamento para Pacientes (Limite Diário & Intervalo Mínimo de 7 Dias):**
+  - **Regra de Negócio Implementada:**
+    1. **Limite Diário:** Um paciente não pode agendar duas consultas no mesmo dia.
+    2. **Intervalo Mínimo de 7 Dias:** Entre um agendamento e outro do paciente, deve haver no mínimo 7 dias de distância (diferença absoluta entre as datas deve ser $\ge 7$ dias).
+  - **Escopo Exclusivo de Pacientes:** Aplicada exclusivamente no fluxo do paciente (`AgendarConsultaView.tsx` e `MinhaContaView.tsx`). Doutores, recepcionistas e administradores da clínica continuam com total flexibilidade na agenda clínica.
+  - **Exceção Homologada de Teste:** O usuário de testes `everaldozspaciente@gmail.com` (e ID `1b594c6e-400f-4ca7-9a19-282de3ef8832`) é **100% isento** desta restrição para permitir demonstrações e homologações contínuas.
+  - **Feedback Visual na UI:** Caso o dia selecionado pelo paciente infrinja a regra, um banner de alerta informativo em destaque é renderizado acima da grade de horários detalhando os dias restantes para liberação de novo agendamento, bloqueando o clique com alerta claro.
+  - **Método Criado no Serviço:** `agendaService.verificarRegraAgendamentoPaciente`.
 
 - **Integração em Tempo Real dos Logs do Sistema na Tela de Auditoria (`AuditoriaView.tsx` & `auditoriaService.ts`):**
   - **Problema:** A tela *"Auditoria e Registro de Ações"* exibia dados estáticos/mockados (`INITIAL_AUDIT_LOGS`) datados de 28/10/2026, ignorando as dezenas de eventos reais registrados continuamente na tabela `auditoria_logs` do Supabase.

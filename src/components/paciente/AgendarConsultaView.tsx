@@ -362,6 +362,44 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
   const [daySlotsMap, setDaySlotsMap] = useState<Record<number, SlotItem[]>>({});
   const slots = daySlotsMap[selectedDay] || INITIAL_SLOTS;
 
+  // Estado para validação de conflito de regras exclusivas de pacientes (1 por dia e intervalo mínimo de 7 dias)
+  const [conflitoRegraPaciente, setConflitoRegraPaciente] = useState<{
+    permitido: boolean;
+    motivo?: string;
+    tipoBloqueio?: 'mesmo_dia' | 'intervalo_7_dias';
+    diasConflito?: number;
+    dataConflito?: string;
+  } | null>(null);
+
+  // Monitora regras do paciente para o dia selecionado
+  useEffect(() => {
+    if (!patientData?.id) {
+      setConflitoRegraPaciente(null);
+      return;
+    }
+
+    const isTestPatient =
+      patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
+      patientData?.id === '1b594c6e-400f-4ca7-9a19-282de3ef8832';
+
+    if (isTestPatient) {
+      setConflitoRegraPaciente(null);
+      return;
+    }
+
+    const targetDateKey = `2026-11-${String(selectedDay).padStart(2, '0')}`;
+    agendaService
+      .verificarRegraAgendamentoPaciente(patientData.id, targetDateKey, patientData.email)
+      .then((res) => {
+        if (!res.permitido) {
+          setConflitoRegraPaciente(res);
+        } else {
+          setConflitoRegraPaciente(null);
+        }
+      })
+      .catch(() => setConflitoRegraPaciente(null));
+  }, [selectedDay, patientData]);
+
   // Carrega agendamentos reais do paciente no Supabase para o dia selecionado
   useEffect(() => {
     if (!patientData?.id) return;
@@ -502,7 +540,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
     }
   };
 
-  const handleOpenBooking = (slot: SlotItem) => {
+  const handleOpenBooking = async (slot: SlotItem) => {
     // Validação estrita: Não permitir agendamento retroativo para horários que já passaram
     if (isSlotInThePast(slot.time, selectedDay)) {
       toast.warning(
@@ -519,6 +557,28 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
         'Os horários das 08:00 às 09:00 são reservados exclusivamente para o Dr. Frankisney Souza (Administração). Por favor, selecione um horário a partir das 09:00 ou contate a recepção.'
       );
       return;
+    }
+
+    // Regra Exclusiva para Pacientes: 1 por dia e intervalo mínimo de 7 dias entre consultas
+    const isTestPatient =
+      patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
+      patientData?.id === '1b594c6e-400f-4ca7-9a19-282de3ef8832';
+
+    if (!isTestPatient && patientData?.id) {
+      const targetDateKey = `2026-11-${String(selectedDay).padStart(2, '0')}`;
+      const regraCheck = await agendaService.verificarRegraAgendamentoPaciente(
+        patientData.id,
+        targetDateKey,
+        patientData.email
+      );
+
+      if (!regraCheck.permitido) {
+        toast.warning(
+          regraCheck.tipoBloqueio === 'mesmo_dia' ? 'Limite de 1 Consulta por Dia' : 'Intervalo Mínimo de 7 Dias',
+          regraCheck.motivo || 'Regra clínica exclusiva de pacientes: Não é permitido agendar em intervalo menor que 7 dias.'
+        );
+        return;
+      }
     }
 
     setSelectedSlotForBooking(slot);
@@ -548,7 +608,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
       return;
     }
 
-    // 2. Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia.
+    // 2. Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia e nem em intervalo inferior a 7 dias.
     // Exceção Homologada: Usuário de teste 'everaldozspaciente@gmail.com' pode realizar múltiplos agendamentos para demonstrações e testes da clínica.
     const isTestPatient =
       patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
@@ -557,16 +617,17 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
     const targetDateKey = `2026-11-${String(selectedDay).padStart(2, '0')}`;
 
     if (!isTestPatient) {
-      // A. Verificação no Supabase: checa se o paciente possui agendamento ativo nesta data específica
+      // A. Verificação no Supabase: checa a regra do mesmo dia e regra de 7 dias de intervalo
       if (patientData?.id) {
-        const conflito = await agendaService.verificarConflitoDuploAgendamento(
+        const regraCheck = await agendaService.verificarRegraAgendamentoPaciente(
           patientData.id,
-          targetDateKey
+          targetDateKey,
+          patientData.email
         );
-        if (!conflito.permitido) {
+        if (!regraCheck.permitido) {
           toast.warning(
-            'Limite de 1 Agendamento por Dia',
-            conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já tenha sido concluída.'
+            regraCheck.tipoBloqueio === 'mesmo_dia' ? 'Limite de 1 Agendamento por Dia' : 'Intervalo Mínimo de 7 Dias',
+            regraCheck.motivo || 'Regra de Agendamento: Não é permitido agendar em intervalo menor que 7 dias entre consultas.'
           );
           return;
         }
@@ -966,6 +1027,25 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Banner Informativo de Bloqueio por Regra do Paciente (Mesmo dia ou Intervalo < 7 dias) */}
+            {conflitoRegraPaciente && !conflitoRegraPaciente.permitido && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3 shadow-2xs animate-in fade-in duration-200">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-amber-950">
+                    {conflitoRegraPaciente.tipoBloqueio === 'mesmo_dia'
+                      ? 'Limite Clínico: Consulta Já Agendada Neste Dia'
+                      : 'Regra Clínica: Intervalo Mínimo de 7 Dias'}
+                  </p>
+                  <p className="text-[11px] text-amber-900 leading-snug mt-1">
+                    {conflitoRegraPaciente.motivo}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Grid / Wrap de Botões de Horário (Pills - Anexo 1) */}
             {filteredSlots.filter((s) => s.status === 'livre' && !isSlotInThePast(s.time, selectedDay)).length === 0 ? (
