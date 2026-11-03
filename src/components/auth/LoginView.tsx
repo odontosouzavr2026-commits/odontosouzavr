@@ -18,6 +18,7 @@ import { ToothIcon } from '../common/ToothIcon';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { pacientesService } from '../../services/pacientesService';
+import { recaptchaService } from '../../services/recaptchaService';
 
 // Configurações de Segurança contra Força Bruta
 const MAX_FAILED_ATTEMPTS = 3;
@@ -104,6 +105,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
     return () => clearInterval(interval);
   }, [lockoutUntil, toast]);
 
+  // Pré-carrega o reCAPTCHA invisível do Google
+  useEffect(() => {
+    recaptchaService.loadScript();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -131,6 +137,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setIsLoading(true);
 
     try {
+      // 0. Validação silenciosa e invisível via Google reCAPTCHA
+      const recaptcha = await recaptchaService.execute();
+      if (recaptcha.token) {
+        recaptchaService.verifyTokenOnServer(recaptcha.token).catch(() => {});
+      }
+
       // 1. Tenta autenticação real com Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
@@ -544,6 +556,28 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   </>
                 )}
               </button>
+
+              {/* Aviso de Proteção Google reCAPTCHA Invisível */}
+              <p className="text-[10px] text-slate-400 text-center leading-relaxed pt-3">
+                Protegido por Google reCAPTCHA (Invisível) •{' '}
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-[#005f73]"
+                >
+                  Privacidade
+                </a>{' '}
+                e{' '}
+                <a
+                  href="https://policies.google.com/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-[#005f73]"
+                >
+                  Termos
+                </a>
+              </p>
             </form>
 
             {/* Mobile Footer Links */}

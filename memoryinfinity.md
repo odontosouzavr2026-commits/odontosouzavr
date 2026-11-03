@@ -998,6 +998,11 @@ export const brandColors = {
     - **Sincronização Segura de Sessão JWT (Anti-Adulteração de LocalStorage):** Implementado listener `supabase.auth.onAuthStateChange` em `App.tsx` para sincronizar ativamente o estado da sessão com os tokens criptografados do Supabase, descartando perfis forjados em `localStorage` e efetuando `signOut` nativo na saída (`handleLogout`).
     - **Higienização de Caches e Chaves Sensíveis:** No logout do sistema, `odonto_user`, `odonto_notificacoes_clinicas_v1` e `odonto_evo_api_key` são limpos imediatamente do navegador.
     - **Remoção de Chave TOTP Estática:** Em `SegurancaView.tsx`, a chave manual fixa de 2FA foi substituída por geração de segredo aleatório criptográfico por sessão via `window.crypto.getRandomValues`.
+    - **Google reCAPTCHA v2 Invisível Implementado em Todos os Domínios:**
+      - Integrado serviço `recaptchaService.ts` com suporte automático e transparente para `app.odontosouzavr.com.br` e `odontosouzavr.com.br`.
+      - Protege o formulário de login (`LoginView.tsx`) e os agendamentos/cadastros públicos (`InstitucionalAgendaSection.tsx`) contra spambots, brute-force e ataques de negação de serviço.
+      - Criada rota serverless Vercel `api/verify-recaptcha.ts` com validação server-side via `RECAPTCHA_SECRET_KEY` no Google `siteverify`.
+      - Credenciais protegidas via `.env.local` e documentadas com placeholders seguros em `.env.example`.
   - **Fila de Encaixe com Alerta Visual Multi-Canais & Alocação Automática na Desistência com Notificação WhatsApp:**
     - Implementada a arquitetura completa de Fila de Encaixe solicitada pelo usuário:
       1. **Alerta Visual Multi-Canais:**

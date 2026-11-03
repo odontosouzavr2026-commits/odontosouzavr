@@ -43,6 +43,7 @@ import { useViaCep } from '../../hooks/useViaCep';
 import { emitirNotificacaoClinica } from '../../contexts/NotificationContext';
 import { supabase } from '../../lib/supabase';
 import { ToothIcon } from '../common/ToothIcon';
+import { recaptchaService } from '../../services/recaptchaService';
 
 export interface InstitucionalAgendaProps {
   currentUser?: {
@@ -336,6 +337,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
   // Carrega e sincroniza em tempo real as reservas na data selecionada
   useEffect(() => {
     fetchBookedSlots(selectedDate);
+    recaptchaService.loadScript();
 
     const channel = supabase
       .channel(`institucional-agenda-${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`)
@@ -608,6 +610,12 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
     setIsSubmittingBooking(true);
 
     try {
+      // 0. Validação silenciosa e invisível com Google reCAPTCHA
+      const recaptcha = await recaptchaService.execute();
+      if (recaptcha.token) {
+        recaptchaService.verifyTokenOnServer(recaptcha.token).catch(() => {});
+      }
+
       const dateKey = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(
         selectedDate.getDate()
       ).padStart(2, '0')}`;
