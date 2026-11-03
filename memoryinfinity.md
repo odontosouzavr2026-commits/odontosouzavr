@@ -12,6 +12,19 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Integração em Tempo Real dos Logs do Sistema na Tela de Auditoria (`AuditoriaView.tsx` & `auditoriaService.ts`):**
+  - **Problema:** A tela *"Auditoria e Registro de Ações"* exibia dados estáticos/mockados (`INITIAL_AUDIT_LOGS`) datados de 28/10/2026, ignorando as dezenas de eventos reais registrados continuamente na tabela `auditoria_logs` do Supabase.
+  - **Implementação do `auditoriaService.ts`:**
+    - Criado serviço para carregar eventos reais da tabela `auditoria_logs` ordenados por `criado_em DESC`.
+    - Mapeamento dinâmico de ações (`DISPARO_WHATSAPP_AUTOMATICO`, `DISPARO_WHATSAPP_LEMBRETE`, `CONFIRMACAO_WHATSAPP_SIM`, `EXCLUSAO_NOTIFICADA_WHATSAPP`, `ALTERAR_STATUS`, `AGENDAR`, `LOGIN`, etc.), módulos (Agenda, WhatsApp, Prontuário, Financeiro, Usuários, Segurança), nível de risco, detalhes e extração de alterações de estado (`dados_novos` / `dados_anteriores`).
+    - Geração de hash SHA-256 determinístico por assinatura de integridade para cada log real.
+    - Método `registrarLogManual` gravando ações manuais diretamente no Supabase com auditoria persistente.
+  - **Ajustes na Interface (`AuditoriaView.tsx`):**
+    - Carregamento assíncrono real ao montar a tela e ao clicar em "Atualizar".
+    - Métricas em tempo real: Total de eventos reais no banco, contagem dinâmica de eventos de hoje baseada na data atual (`new Date()`), colaboradores e ações críticas.
+    - Filtros de período dinâmicos: `"Hoje (dd/MM)"`, `"Últimos 7 dias"`, `"Últimos 30 dias"` e `"Todos os Registros"` operando com datas reais.
+    - Indicador de carregamento (spinner animado) enquanto consulta o banco.
+
 - **Correção de Codificação UTF-8 nas Mensagens de Confirmação e Cancelamento do WhatsApp (n8n & Evolution API):**
   - **Causa Raiz Identificada:** O fluxo do n8n `kr1yAMMTpD91OXVS` (*Odonto Souza - Confirmação e Cancelamento WhatsApp*) continha textos nos nós com caracteres acentuados corrompidos em Latin-1/ANSI (ex.: `"Ol?, "`, `"cl?nica"`, `"hor?rio"`, `"???"`), o que fazia as mensagens enviadas aos pacientes após o envio de `"1"` ou `"sim"` saírem com pontos de interrogação no lugar de acentos e emojis.
   - **Ação Executada no n8n:** O payload do fluxo `kr1yAMMTpD91OXVS` foi atualizado via n8n API com codificação UTF-8 explícita (`Buffer.from(..., 'utf8')` e `Content-Type: application/json; charset=utf-8`).

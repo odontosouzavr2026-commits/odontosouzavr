@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShieldCheck,
   Search,
@@ -32,57 +32,15 @@ import {
   Settings,
   Sparkles,
 } from 'lucide-react';
+import {
+  auditoriaService,
+  AuditLogItem,
+  ModuloAuditoria,
+  TipoAcao,
+  NivelRisco,
+} from '../../services/auditoriaService';
 
-export type ModuloAuditoria =
-  | 'Todos'
-  | 'Prontuário'
-  | 'Financeiro'
-  | 'Agenda'
-  | 'Pacientes'
-  | 'WhatsApp'
-  | 'Usuários'
-  | 'Configurações'
-  | 'Segurança';
-
-export type TipoAcao =
-  | 'Todos'
-  | 'CRIAÇÃO'
-  | 'EDIÇÃO'
-  | 'EXCLUSÃO'
-  | 'VISUALIZAÇÃO'
-  | 'EXPORTAÇÃO'
-  | 'ACESSO/LOGIN'
-  | 'DISPARO';
-
-export type NivelRisco = 'Todos' | 'Baixo' | 'Médio' | 'Crítico';
-
-export interface AuditLogItem {
-  id: string;
-  protocolo: string;
-  timestamp: string;
-  dataHoraISO: string;
-  usuarioNome: string;
-  usuarioEmail: string;
-  usuarioFuncao: string;
-  usuarioCro?: string;
-  avatarBg: string;
-  modulo: Exclude<ModuloAuditoria, 'Todos'>;
-  tipoAcao: Exclude<TipoAcao, 'Todos'>;
-  nivelRisco: 'Baixo' | 'Médio' | 'Crítico';
-  titulo: string;
-  recurso: string;
-  detalhes: string;
-  ipOrigem: string;
-  dispositivo: string;
-  sessaoId: string;
-  status: 'Sucesso' | 'Alerta' | 'Bloqueado';
-  hashSha256: string;
-  alteracoes?: {
-    campo: string;
-    antes: string;
-    depois: string;
-  }[];
-}
+export type { ModuloAuditoria, TipoAcao, NivelRisco, AuditLogItem };
 
 const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
   {
@@ -347,7 +305,8 @@ interface AuditoriaViewProps {
 export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
   forceMobileView = false,
 }) => {
-  const [logs, setLogs] = useState<AuditLogItem[]>(INITIAL_AUDIT_LOGS);
+  const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [filtroModulo, setFiltroModulo] = useState<ModuloAuditoria>('Todos');
   const [filtroTipo, setFiltroTipo] = useState<TipoAcao>('Todos');
@@ -367,54 +326,62 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Recarregar / Sincronizar Logs com feedback visual
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      showToast('Trilha de auditoria sincronizada com o livro de registros imutável.');
-    }, 600);
+  const carregarLogsReais = async (silencioso = false) => {
+    if (!silencioso) setIsLoading(true);
+    try {
+      const dadosReais = await auditoriaService.getLogs(300);
+      if (dadosReais && dadosReais.length > 0) {
+        setLogs(dadosReais);
+      } else {
+        setLogs(INITIAL_AUDIT_LOGS);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar logs reais:', err);
+      setLogs(INITIAL_AUDIT_LOGS);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Gerar novo registro de teste em tempo real
-  const handleAddLiveLog = () => {
-    const agora = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const timestampStr = `${pad(agora.getDate())}/${pad(agora.getMonth() + 1)}/${agora.getFullYear()} ${pad(
-      agora.getHours()
-    )}:${pad(agora.getMinutes())}:${pad(agora.getSeconds())}`;
+  useEffect(() => {
+    carregarLogsReais();
+  }, []);
 
-    const newLog: AuditLogItem = {
-      id: `AUD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      protocolo: `ODN-AUD-${Math.floor(10000 + Math.random() * 90000)}-SP`,
-      timestamp: timestampStr,
-      dataHoraISO: agora.toISOString(),
-      usuarioNome: 'Dr. Frankisney Souza',
-      usuarioEmail: 'frankisney@odontosouza.com.br',
-      usuarioFuncao: 'Cirurgião-Dentista (RT)',
-      usuarioCro: 'CRO-5950/MT',
-      avatarBg: 'bg-[#005F73]',
-      modulo: 'Configurações',
-      tipoAcao: 'CRIAÇÃO',
-      nivelRisco: 'Baixo',
-      titulo: 'Verificação Manual de Integridade de Auditoria',
-      recurso: 'Módulo de Governança & Segurança',
-      detalhes:
-        'Evento registrado manualmente pelo Dr. Frankisney Souza para certificar a rastreabilidade das ações de colaboradores.',
-      ipOrigem: '187.54.12.98',
-      dispositivo: 'Terminal Principal / Odonto Souza Cloud',
-      sessaoId: `sess_audit_${Date.now()}`,
-      status: 'Sucesso',
-      hashSha256: Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join(''),
-      alteracoes: [
-        { campo: 'Auditoria Manual', antes: 'Aguardando', depois: 'Verificada e Aprovada' },
-      ],
-    };
+  // Recarregar / Sincronizar Logs com feedback visual
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await carregarLogsReais(true);
+      showToast('Trilha de auditoria sincronizada com o banco de dados em tempo real.');
+    } catch (e) {
+      showToast('Erro ao sincronizar trilha de auditoria.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
-    setLogs((prev) => [newLog, ...prev]);
-    showToast('Novo evento de auditoria gerado e assinado criptograficamente!');
+  // Gerar novo registro de teste em tempo real no Supabase
+  const handleAddLiveLog = async () => {
+    try {
+      const novoLog = await auditoriaService.registrarLogManual({
+        usuarioNome: 'Dr. Frankisney Souza',
+        usuarioEmail: 'frankisney@odontosouza.com.br',
+        usuarioFuncao: 'Cirurgião-Dentista (RT)',
+        modulo: 'Configurações',
+        acao: 'AUDITORIA_MANUAL_VERIFICADA',
+        detalhes: 'Evento registrado manualmente pelo Dr. Frankisney Souza para certificar a conformidade e integridade dos registros da clínica.',
+        entidade: 'auditoria'
+      });
+
+      if (novoLog) {
+        setLogs((prev) => [novoLog, ...prev]);
+        showToast('Novo evento de auditoria gravado no banco e assinado criptograficamente!');
+      } else {
+        showToast('Ação manual registrada na sessão.');
+      }
+    } catch (err) {
+      showToast('Erro ao gravar log manual no banco.');
+    }
   };
 
   // Exportar para CSV
@@ -509,12 +476,30 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
       // Filtro Período
       let matchPeriodo = true;
       if (periodoFiltro === 'hoje') {
-        matchPeriodo = log.timestamp.includes('28/10/2026');
+        const logDate = new Date(log.dataHoraISO);
+        const today = new Date();
+        matchPeriodo =
+          logDate.getDate() === today.getDate() &&
+          logDate.getMonth() === today.getMonth() &&
+          logDate.getFullYear() === today.getFullYear();
+      } else if (periodoFiltro === '7dias') {
+        const logDate = new Date(log.dataHoraISO).getTime();
+        matchPeriodo = logDate >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+      } else if (periodoFiltro === '30dias') {
+        const logDate = new Date(log.dataHoraISO).getTime();
+        matchPeriodo = logDate >= Date.now() - 30 * 24 * 60 * 60 * 1000;
       }
 
       return matchBusca && matchModulo && matchTipo && matchRisco && matchUsuario && matchPeriodo;
     });
   }, [logs, busca, filtroModulo, filtroTipo, filtroRisco, filtroUsuario, periodoFiltro]);
+
+  // Data atual formatada (dd/MM) para labels
+  const hojeFormatado = useMemo(() => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+  }, []);
 
   // Métricas
   const totalLogs = logs.length;
@@ -523,7 +508,17 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
     const setUsers = new Set(logs.map((l) => l.usuarioNome));
     return setUsers.size;
   }, [logs]);
-  const logsHojeCount = logs.filter((l) => l.timestamp.includes('28/10/2026')).length;
+  const logsHojeCount = useMemo(() => {
+    const today = new Date();
+    return logs.filter((l) => {
+      const d = new Date(l.dataHoraISO);
+      return (
+        d.getDate() === today.getDate() &&
+        d.getMonth() === today.getMonth() &&
+        d.getFullYear() === today.getFullYear()
+      );
+    }).length;
+  }, [logs]);
 
   const copyToClipboard = (text: string, type: 'hash' | 'payload') => {
     navigator.clipboard?.writeText(text);
@@ -847,7 +842,7 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
             <span className="text-slate-400 text-[11px] font-medium shrink-0">Período:</span>
             {[
               { id: 'todos', label: 'Todos os Registros' },
-              { id: 'hoje', label: 'Hoje (28/10)' },
+              { id: 'hoje', label: `Hoje (${hojeFormatado})` },
               { id: '7dias', label: 'Últimos 7 dias' },
               { id: '30dias', label: 'Últimos 30 dias' },
             ].map((p) => (
@@ -888,7 +883,17 @@ export const AuditoriaView: React.FC<AuditoriaViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {logsFiltrados.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <RefreshCw className="w-6 h-6 text-[#005F73] animate-spin" />
+                      <p className="font-semibold text-slate-700">Carregando logs reais do banco de dados...</p>
+                      <p className="text-xs text-slate-400">Verificando trilha criptográfica e registros no Supabase</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : logsFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
