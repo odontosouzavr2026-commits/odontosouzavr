@@ -12,6 +12,16 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Correção de Codificação UTF-8 nas Mensagens de Confirmação e Cancelamento do WhatsApp (n8n & Evolution API):**
+  - **Causa Raiz Identificada:** O fluxo do n8n `kr1yAMMTpD91OXVS` (*Odonto Souza - Confirmação e Cancelamento WhatsApp*) continha textos nos nós com caracteres acentuados corrompidos em Latin-1/ANSI (ex.: `"Ol?, "`, `"cl?nica"`, `"hor?rio"`, `"???"`), o que fazia as mensagens enviadas aos pacientes após o envio de `"1"` ou `"sim"` saírem com pontos de interrogação no lugar de acentos e emojis.
+  - **Ação Executada no n8n:** O payload do fluxo `kr1yAMMTpD91OXVS` foi atualizado via n8n API com codificação UTF-8 explícita (`Buffer.from(..., 'utf8')` e `Content-Type: application/json; charset=utf-8`).
+  - **Textos Corrigidos:**
+    - Confirmação (*Enviar Agradecimento WhatsApp*): `"Olá, {nome}! Agradecemos por confirmar sua consulta. Esperamos você na clínica Odonto Souza na data e horário combinados. Tenha um excelente dia! 🦷✨"`
+    - Desmarcação/Remarcação (*Desmarcar no Supabase*): `"Entendido, {nome}! 🦷\nAcesse seu painel pelo endereço https://app.odontosouzavr.com.br para fazer a remarcação para um novo horário ou novo dia.\n\nCaso prefira falar com nossa equipe, ligue para (66) 3554-2633 ou chame pelo WhatsApp (66) 98445-4825."`
+    - Mensagem Inválida (*Enviar Orientação Resposta Inválida*): `"Olá, {nome}! Não conseguimos identificar sua resposta. 🦷\n\nPor favor, responda apenas:\n*1* para *CONFIRMAR*\n*2* para *REMARCAR*\n\n*(Caso queira falar com nossa recepção, você pode nos ligar no (66) 3554-2633 ou WhatsApp (66) 98445-4825)*"`
+    - Encaixe Automático (*Alocar 1º Encaixe e Notificar WhatsApp*): Notificação completa e auditada com acentuação e emojis perfeitos.
+  - **Ajuste no Frontend (`evolutionApiService.ts`):** Header atualizado para `'Content-Type': 'application/json; charset=utf-8'` em todas as requisições diretas à Evolution API.
+
 - **Métrica e Rastreamento de Visitas (Umami Cloud Analytics):**
   - Adicionado o script oficial do Umami Analytics em `index.html` com o ID do site `c3383492-2d40-436c-994c-fa707c91cca3` (`https://cloud.umami.is/script.js`), permitindo a contagem e auditoria de visitas em tempo real tanto no site institucional quanto na aplicação web.
 
