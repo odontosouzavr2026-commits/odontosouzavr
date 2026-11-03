@@ -15,7 +15,7 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
 - **Nova Regra de Deploy Automático a Cada 5 Alterações (`.agents/rules/deploy.md`):**
   - **Cadência Obrigatória:** A cada lote de **5 (cinco) alterações/tarefas concluídas**, o assistente de IA deve automaticamente rodar a validação de build (`npm run build`), consolidar os commits e disparar o deploy para a branch `main` (Vercel).
   - **Deploy sob Demanda:** Permanece ativa a execução imediata de deploy sempre que solicitado expressamente pelo usuário (ex: *"faça o deploy"*).
-  - **Contador de Ciclo Ativo:** **Alteração 2 de 5** (Correção do botão "Atender" no Modal de Agenda do Dia).
+  - **Contador de Ciclo Ativo:** **0 de 5 alterações** (Deploy sob demanda executado).
 
 - **Correção do Botão "Atender" no Modal de Abertura da Agenda do Dia (`AgendaDoDiaModal.tsx` / `DashboardView.tsx` / `App.tsx`):**
   - **Causa Raiz Identificada:** O botão *"Atender"* dentro do modal matinal chamava `onNavigate('atendimento')` sem repassar o objeto do paciente ou agendamento para o `App.tsx`. Com isso, `selectedPatient` permanecia `null` e a tela `AtendimentoView` abria no estado vazio (*"Nenhum Atendimento em Andamento / Cadeira Livre"*).
