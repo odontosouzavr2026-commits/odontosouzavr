@@ -1003,6 +1003,8 @@ export const brandColors = {
       - Protege o formulário de login (`LoginView.tsx`) e os agendamentos/cadastros públicos (`InstitucionalAgendaSection.tsx`) contra spambots, brute-force e ataques de negação de serviço.
       - Criada rota serverless Vercel `api/verify-recaptcha.ts` com validação server-side via `RECAPTCHA_SECRET_KEY` no Google `siteverify`.
       - Credenciais protegidas via `.env.local` e documentadas com placeholders seguros em `.env.example`.
+    - **Instalação da Tag Google Analytics 4 (GA4):**
+      - Instalada a tag oficial do Google Analytics (`G-N3JN77QNMV` via `gtag.js`) no `<head>` do [`index.html`](file:///c:/OdontoSouza/index.html) para métricas de tráfego, acessos e conversão em tempo real.
   - **Fila de Encaixe com Alerta Visual Multi-Canais & Alocação Automática na Desistência com Notificação WhatsApp:**
     - Implementada a arquitetura completa de Fila de Encaixe solicitada pelo usuário:
       1. **Alerta Visual Multi-Canais:**
