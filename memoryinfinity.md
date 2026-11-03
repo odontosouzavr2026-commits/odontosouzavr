@@ -12,6 +12,10 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Limpeza de Logs de Console e Resiliência de Sincronização:**
+  - **Eliminação de Erros de WebSocket (`wss://painelsupabase...`):** Como o servidor VPS do Supabase não possui o gateway de WebSocket/Realtime (porta 4000) exposto e roteado pelo proxy HTTPS na porta 443, as conexões de canal realtime foram substituídas por polling resiliente HTTPS a cada 15s (`InstitucionalAgendaSection.tsx`) e condicionadas à flag `VITE_ENABLE_SUPABASE_WEBSOCKET === 'true'` em `NotificationContext.tsx`. A sincronização de abas e dados permanece 100% ativa via HTTPS REST e `BroadcastChannel`.
+  - **Silenciamento de Logs Informativos em Produção:** O log de eleição de abas do motor de agendamento (`[automationEngine] Esta aba foi eleita Líder...`) foi restrito para execução exclusiva em ambiente de desenvolvimento (`import.meta.env?.DEV`).
+
 - **Modal Matinal de Abertura do Sistema (Resumo da Agenda do Dia):**
   - Implementado em `src/components/dashboard/AgendaDoDiaModal.tsx` e integrado no `DashboardView.tsx`.
   - Exibe na abertura do sistema um briefing completo das consultas agendadas para o dia atual: data por extenso, métricas rápidas (total de consultas, confirmados, em espera e atendidos), lista detalhada dos pacientes (horário, nome, prontuário, procedimento, status e botão de atalho para atendimento) e atalhos rápidos ("Ver Agenda Completa" e "Ir ao Dashboard").

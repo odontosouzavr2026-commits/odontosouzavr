@@ -639,8 +639,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [adicionarNotificacao]);
 
-  // Listener Realtime com Supabase (quando conectado ao backend)
+  // Listener Realtime com Supabase (Ativado apenas se o servidor possuir gateway de WebSocket habilitado)
   useEffect(() => {
+    // Evita erros de WebSocket no console quando o gateway de Realtime não está exposto
+    if (import.meta.env?.VITE_ENABLE_SUPABASE_WEBSOCKET !== 'true') {
+      return;
+    }
+
     try {
       const channel = supabase
         .channel('clinica-notificacoes-realtime')
@@ -679,9 +684,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         )
         .subscribe((status) => {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            // Se o WebSocket do Supabase Realtime estiver inacessível no gateway,
-            // remove o canal para evitar loops infinitos de reconexão no console.
-            // A sincronização permanece 100% ativa via BroadcastChannel e Polling.
             supabase.removeChannel(channel);
           }
         });

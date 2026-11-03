@@ -334,24 +334,18 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
     }
   };
 
-  // Carrega e sincroniza em tempo real as reservas na data selecionada
+  // Carrega e sincroniza em tempo real as reservas na data selecionada via REST API segura
   useEffect(() => {
     fetchBookedSlots(selectedDate);
     recaptchaService.loadScript();
 
-    const channel = supabase
-      .channel(`institucional-agenda-${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'agendamentos' },
-        () => {
-          fetchBookedSlots(selectedDate);
-        }
-      )
-      .subscribe();
+    // Sincronização periódica inteligente via HTTPS/REST (elimina erros ruidosos de WebSocket no console)
+    const syncInterval = setInterval(() => {
+      fetchBookedSlots(selectedDate);
+    }, 15000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(syncInterval);
     };
   }, [selectedDate]);
 

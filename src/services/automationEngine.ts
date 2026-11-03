@@ -29,7 +29,9 @@ export const automationEngine = {
       navigator.locks
         .request(LOCK_NAME, async () => {
           isLeaderTab = true;
-          console.info('[automationEngine] Esta aba foi eleita Líder de Automações.');
+          if (import.meta.env?.DEV) {
+            console.info('[automationEngine] Esta aba foi eleita Líder de Automações.');
+          }
 
           // Executa a primeira checagem com pequeno delay
           setTimeout(() => {
