@@ -325,34 +325,40 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
       return;
     }
 
-    // Regra de Negócio: Um paciente não pode marcar dois horários no mesmo dia.
-    // Pode agendar em dias diferentes (ex: dia 1 e dia 3), mas nunca dois no mesmo dia,
-    // a não ser que a consulta anterior na mesma data já esteja concluída.
-    if (patientData?.id) {
-      const conflito = await agendaService.verificarConflitoDuploAgendamento(
-        patientData.id,
-        selectedDay.dateKey
-      );
-      if (!conflito.permitido) {
-        toast.warning(
-          'Limite de 1 Agendamento por Dia',
-          conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
-        );
-        return;
-      }
-    }
+    // Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia.
+    // Exceção Homologada: Usuário de teste 'everaldozspaciente@gmail.com' pode agendar livremente para testes e apresentações.
+    const isTestPatient =
+      patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
+      patientData?.id === '1b594c6e-400f-4ca7-9a19-282de3ef8832' ||
+      currentUser?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com';
 
-    if (currentAppointment && currentAppointment.dateKey === selectedDay.dateKey) {
-      const isConcluido = currentAppointment.status.toLowerCase().includes('conclu');
-      const isDesmarcado =
-        currentAppointment.status.toLowerCase().includes('cancel') ||
-        currentAppointment.status.toLowerCase().includes('desmarc');
-      if (!isConcluido && !isDesmarcado) {
-        toast.warning(
-          'Limite de 1 Agendamento por Dia',
-          'Regra Clínica: Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
+    if (!isTestPatient) {
+      if (patientData?.id) {
+        const conflito = await agendaService.verificarConflitoDuploAgendamento(
+          patientData.id,
+          selectedDay.dateKey
         );
-        return;
+        if (!conflito.permitido) {
+          toast.warning(
+            'Limite de 1 Agendamento por Dia',
+            conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
+          );
+          return;
+        }
+      }
+
+      if (currentAppointment && currentAppointment.dateKey === selectedDay.dateKey) {
+        const isConcluido = currentAppointment.status.toLowerCase().includes('conclu');
+        const isDesmarcado =
+          currentAppointment.status.toLowerCase().includes('cancel') ||
+          currentAppointment.status.toLowerCase().includes('desmarc');
+        if (!isConcluido && !isDesmarcado) {
+          toast.warning(
+            'Limite de 1 Agendamento por Dia',
+            'Regra Clínica: Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já esteja com o status "Concluído".'
+          );
+          return;
+        }
       }
     }
 

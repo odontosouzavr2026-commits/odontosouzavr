@@ -156,12 +156,22 @@ export const agendaService = {
     dateStr: string,
     currentAgendamentoId?: string,
     novoHorarioInicio?: Date,
-    novoHorarioFim?: Date
+    novoHorarioFim?: Date,
+    pacienteEmail?: string
   ): Promise<{ permitido: boolean; motivo?: string }> {
     try {
       if (!pacienteNomeOuId || !dateStr) return { permitido: true };
       const agendamentos = await this.getAgendamentosPorData(dateStr);
       const cleanSearch = (pacienteNomeOuId || '').toLowerCase().trim();
+      const cleanEmail = (pacienteEmail || '').toLowerCase().trim();
+
+      // Paciente de Teste Homologado: everaldozspaciente@gmail.com
+      // Isento do limite diário de consultas para fins de demonstração e testes da clínica
+      const isTestPatient =
+        cleanEmail === 'everaldozspaciente@gmail.com' ||
+        cleanSearch === 'everaldozspaciente@gmail.com' ||
+        cleanSearch === '1b594c6e-400f-4ca7-9a19-282de3ef8832' ||
+        pacienteNomeOuId === '1b594c6e-400f-4ca7-9a19-282de3ef8832';
 
       // Checagem 1: Sobreposição exata de horários (mesmo paciente ou mesmo consultório)
       if (novoHorarioInicio && novoHorarioFim) {
@@ -209,6 +219,11 @@ export const agendaService = {
       }
 
       // Checagem 2: Limite de consultas ativas no mesmo dia para o mesmo paciente
+      // Usuário de teste homologado para apresentações e demonstrações clínicas
+      if (isTestPatient) {
+        return { permitido: true };
+      }
+
       const agendamentosDoPaciente = agendamentos.filter((a) => {
         if (currentAgendamentoId && a.id === currentAgendamentoId) return false;
         const matchId = a.pacienteId && a.pacienteId === pacienteNomeOuId;
@@ -278,12 +293,14 @@ export const agendaService = {
 
       // 1.1 Validação Estrita de Conflito de Horário e Prevenção de Duplo Agendamento
       const dateOnlyKey = agendamento.date || startDateTime.toISOString().split('T')[0];
+      const pEmailParam = (agendamento.pacienteEmail || (agendamento as any).email || '').trim().toLowerCase();
       const conflito = await this.verificarConflitoDuploAgendamento(
         agendamento.pacienteId || agendamento.patientName || agendamento.pacienteNome || '',
         dateOnlyKey,
         agendamento.id,
         startDateTime,
-        endDateTime
+        endDateTime,
+        pEmailParam
       );
 
       if (!conflito.permitido) {

@@ -369,18 +369,19 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
     agendaService
       .getAgendamentosPorData(targetDateKey)
       .then((apps) => {
-        const patientApp = apps.find(
+        const patientApps = apps.filter(
           (a) =>
             (a.pacienteId && a.pacienteId === patientData.id) ||
             (a.patientName && a.patientName.toLowerCase().trim() === patientData.fullName?.toLowerCase().trim())
         );
-        if (patientApp) {
+        if (patientApps.length > 0) {
           setDaySlotsMap((prev) => {
             const baseSlots = prev[selectedDay] || INITIAL_SLOTS;
             return {
               ...prev,
               [selectedDay]: baseSlots.map((s) => {
-                if (s.time === patientApp.time) {
+                const matchedApp = patientApps.find((a) => a.time === s.time);
+                if (matchedApp) {
                   return {
                     ...s,
                     status: 'confirmado',
@@ -388,7 +389,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                     badgeColor: 'bg-[#005f73] text-white font-bold',
                     borderColor: 'border-[#005f73]',
                     bgColor: 'bg-teal-50/70',
-                    detail: `Sua Consulta Confirmada • ${patientApp.procedure || 'Consulta'}`,
+                    detail: `Sua Consulta Confirmada • ${matchedApp.procedure || 'Consulta'}`,
                     subDetail: 'Agendamento sincronizado com o sistema clínico',
                   };
                 }
@@ -547,42 +548,47 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
       return;
     }
 
-    // 2. Regra de Negócio: Um paciente não pode marcar dois horários no mesmo dia.
-    // Pode agendar em dias diferentes (ex: dia 1 e dia 3), mas nunca dois no mesmo dia,
-    // exceto se a consulta anterior na mesma data já estiver concluída.
+    // 2. Regra de Negócio: Um paciente comum não pode marcar dois horários no mesmo dia.
+    // Exceção Homologada: Usuário de teste 'everaldozspaciente@gmail.com' pode realizar múltiplos agendamentos para demonstrações e testes da clínica.
+    const isTestPatient =
+      patientData?.email?.toLowerCase().trim() === 'everaldozspaciente@gmail.com' ||
+      patientData?.id === '1b594c6e-400f-4ca7-9a19-282de3ef8832';
+
     const targetDateKey = `2026-11-${String(selectedDay).padStart(2, '0')}`;
 
-    // A. Verificação no Supabase: checa se o paciente possui agendamento ativo nesta data específica
-    if (patientData?.id) {
-      const conflito = await agendaService.verificarConflitoDuploAgendamento(
-        patientData.id,
-        targetDateKey
-      );
-      if (!conflito.permitido) {
+    if (!isTestPatient) {
+      // A. Verificação no Supabase: checa se o paciente possui agendamento ativo nesta data específica
+      if (patientData?.id) {
+        const conflito = await agendaService.verificarConflitoDuploAgendamento(
+          patientData.id,
+          targetDateKey
+        );
+        if (!conflito.permitido) {
+          toast.warning(
+            'Limite de 1 Agendamento por Dia',
+            conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já tenha sido concluída.'
+          );
+          return;
+        }
+      }
+
+      // B. Verificação na sessão atual: checa se o paciente já pré-agendou outro horário para este mesmo dia
+      const hasActiveLocalBooking = slots.some((s) => {
+        if (s.id === selectedSlotForBooking.id) return false;
+        const isMine =
+          s.statusLabel === 'Pré-Agendado por Você' ||
+          s.detail?.includes('Sua Consulta Pré-Agendada');
+        const isConcluido = s.status === 'concluido';
+        return isMine && !isConcluido;
+      });
+
+      if (hasActiveLocalBooking) {
         toast.warning(
           'Limite de 1 Agendamento por Dia',
-          conflito.motivo || 'Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já tenha sido concluída.'
+          'Regra de Agendamento: Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já tenha sido concluída.'
         );
         return;
       }
-    }
-
-    // B. Verificação na sessão atual: checa se o paciente já pré-agendou outro horário para este mesmo dia
-    const hasActiveLocalBooking = slots.some((s) => {
-      if (s.id === selectedSlotForBooking.id) return false;
-      const isMine =
-        s.statusLabel === 'Pré-Agendado por Você' ||
-        s.detail?.includes('Sua Consulta Pré-Agendada');
-      const isConcluido = s.status === 'concluido';
-      return isMine && !isConcluido;
-    });
-
-    if (hasActiveLocalBooking) {
-      toast.warning(
-        'Limite de 1 Agendamento por Dia',
-        'Regra de Agendamento: Você já possui uma consulta marcada para este dia. Não é permitido agendar dois horários na mesma data, a menos que a consulta anterior já tenha sido concluída.'
-      );
-      return;
     }
 
     // Persiste no Supabase se houver dados do paciente
@@ -629,7 +635,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
     // Dispara notificação com campainha de recepção dupla para o painel da clínica
     const pName = patientData?.fullName || (patientData as any)?.nome || 'Everaldo Souza da Silva';
     const pPhone = patientData?.phone || (patientData as any)?.telefone || '(65) 99605-5823';
-    const pEmail = patientData?.email || 'everaldoszpaciente@gmail.com';
+    const pEmail = patientData?.email || 'everaldozspaciente@gmail.com';
     const pDataConsulta = `${getDayOfWeekName(selectedDay)}, ${selectedDay} de Novembro de 2026`;
 
     emitirNotificacaoClinica({

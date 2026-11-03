@@ -12,6 +12,11 @@ Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo 
     - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
     - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
 
+- **Exceção de Agendamento Múltiplo para Demonstração Clínica:**
+  - O usuário de teste do portal do paciente (`everaldozspaciente@gmail.com` / ID `1b594c6e-400f-4ca7-9a19-282de3ef8832`) foi homologado com permissão para realizar múltiplos agendamentos no mesmo dia ou em datas consecutivas sem bloqueio pela regra de limite diário.
+  - A regra clínica estrita (limite de 1 consulta ativa por dia) permanece 100% ativa e mandatória para todos os demais pacientes e cadastros reais do sistema.
+  - O carregamento da agenda do paciente (`AgendarConsultaView.tsx`) agora renderiza todos os múltiplos agendamentos do dia selecionado como *"Sua Consulta Agendada"*.
+
 - **Ativação e Configuração de Acesso Administrativo:**
   - O usuário administrador `Everaldo Souza da Silva` (`everaldozs@gmail.com`) teve sua conta provisionada e sincronizada no Supabase Auth (`auth.users`) e na tabela `public.usuarios` com hash criptográfico bcrypt (`pgcrypto`).
   - O fluxo de login (`salvar_usuario_sistema` no modo `login`) foi testado e validado via RPC com sucesso total.
