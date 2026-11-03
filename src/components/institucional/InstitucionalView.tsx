@@ -499,7 +499,7 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <span className="text-xs text-slate-500 font-medium">Responsável Técnico</span>
-                      <span className="text-xs font-bold text-slate-800">Dr. Frankisney Souza (CRO-SP 78.432)</span>
+                      <span className="text-xs font-bold text-slate-800">Dr. Frankisney B. Souza (CRO-5950/MT)</span>
                     </div>
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <span className="text-xs text-slate-500 font-medium">Tempo de Consulta</span>
@@ -574,16 +574,16 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
               <div className="relative rounded-3xl overflow-hidden border-4 border-slate-100 shadow-xl aspect-4/5 bg-slate-200">
                 <img
                   src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=800&q=80"
-                  alt="Dr. Frankisney Souza - Responsável Técnico Odonto Souza"
+                  alt="Dr. Frankisney B. Souza - Responsável Técnico Odonto Souza"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent p-6 text-white">
-                  <p className="font-extrabold text-lg text-white">Dr. Frankisney Souza</p>
+                  <p className="font-extrabold text-lg text-white">Dr. Frankisney B. Souza</p>
                   <p className="text-xs text-[#94D2BD] font-semibold mt-0.5">
-                    Cirurgião-Dentista • Responsável Técnico (CRO-SP 78.432)
+                    Cirurgião-Dentista • Responsável Técnico (CRO-5950/MT)
                   </p>
                   <p className="text-[11px] text-slate-200 mt-2">
-                    Dedicação clínica continuada, especialista em reabilitação oral e odontologia preventiva.
+                    Dedicação clínica continuada, cirurgião dentista e responsável técnico pela ODONTO SOUZA LTDA.
                   </p>
                 </div>
               </div>
@@ -950,15 +950,18 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-semibold uppercase">WhatsApp & Telefone Oficial</p>
+                    <p className="text-xs text-slate-500 font-semibold uppercase">WhatsApp & Telefones Oficiais</p>
                     <a
-                      href="https://wa.me/5566992544324"
+                      href="https://wa.me/5566984454825"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-sm sm:text-base font-bold text-[#005F73] hover:underline"
+                      className="text-sm sm:text-base font-bold text-emerald-600 hover:underline block"
                     >
-                      (66) 99254-4324
+                      WhatsApp: (66) 98445-4825
                     </a>
+                    <p className="text-xs font-semibold text-slate-700 mt-0.5">
+                      Fixo: (66) 3554-2633 / (66) 3554-1390
+                    </p>
                     <p className="text-[11px] text-slate-500 mt-0.5">Resposta rápida com confirmação de horário</p>
                   </div>
                 </div>
@@ -1003,7 +1006,7 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
 
                 <div className="space-y-3.5">
                   <a
-                    href="https://wa.me/5566992544324?text=Ol%C3%A1!%20Gostaria%20de%20agendar%20uma%20consulta%20na%20Odonto%20Souza."
+                    href="https://wa.me/5566984454825?text=Ol%C3%A1!%20Gostaria%20de%20agendar%20uma%20consulta%20na%20Odonto%20Souza."
                     target="_blank"
                     rel="noreferrer"
                     className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 cursor-pointer group"
@@ -1060,7 +1063,10 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
                 tecnologia.
               </p>
               <p className="text-[11px] text-slate-500">
-                Responsável Técnico: Dr. Frankisney Souza • CRO-SP 78.432
+                ODONTO SOUZA LTDA • CNPJ: 67.587.323/0001-02
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Responsável Técnico: Dr. Frankisney B. Souza • CRO-5950/MT
               </p>
             </div>
 
@@ -1131,9 +1137,10 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
             <div className="space-y-2.5">
               <p className="font-bold text-white text-xs uppercase tracking-wider">Atendimento</p>
               <p className="text-xs text-slate-400">Segunda a Sexta: 08:00 às 19:15</p>
-              <p className="text-xs text-slate-400">WhatsApp: (66) 99254-4324</p>
+              <p className="text-xs text-slate-400">WhatsApp: (66) 98445-4825</p>
+              <p className="text-xs text-slate-400">Fixo: (66) 3554-2633 / (66) 3554-1390</p>
               <a
-                href="https://wa.me/5566992544324"
+                href="https://wa.me/5566984454825"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:underline font-bold mt-1"
@@ -1262,7 +1269,7 @@ export const InstitucionalView: React.FC<InstitucionalViewProps> = ({
                   <h4 className="font-bold text-slate-800 text-sm pt-2">3. Responsabilidade Técnica</h4>
                   <p>
                     Todos os procedimentos clínicos e odontológicos são realizados sob a supervisão e responsabilidade
-                    técnica do cirurgião-dentista <strong>Dr. Frankisney Souza (CRO-SP 78.432)</strong>.
+                    técnica do cirurgião-dentista <strong>Dr. Frankisney B. Souza (CRO-5950/MT)</strong>.
                   </p>
                 </>
               )}

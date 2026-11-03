@@ -21,7 +21,7 @@ export const TestTemplateModal: React.FC<TestTemplateModalProps> = ({
   const [patientsList, setPatientsList] = useState<PacienteItem[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [patientName, setPatientName] = useState('Everaldo Souza da Silva');
-  const [phone, setPhone] = useState('5566992544324');
+  const [phone, setPhone] = useState('5566984454825');
   const [isSending, setIsSending] = useState(false);
 
   // Carrega pacientes reais do Supabase
@@ -207,11 +207,11 @@ export const TestTemplateModal: React.FC<TestTemplateModalProps> = ({
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ex: 5566992544324"
+                placeholder="Ex: 5566984454825"
                 className="w-full px-3 py-2 text-xs sm:text-sm font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0A9396]"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
-                Com DDI e DDD (ex: 55 66 99254-4324)
+                Com DDI e DDD (ex: 55 66 98445-4825)
               </span>
             </div>
           </div>

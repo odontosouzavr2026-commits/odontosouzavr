@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+/* Oculta o selo flutuante do Google reCAPTCHA para não cobrir botões de ação (WhatsApp, agendamento),
+   em total conformidade com a documentação oficial do Google (Termos legais exibidos nas telas) */
+.grecaptcha-badge {
+  visibility: hidden !important;
+}
+

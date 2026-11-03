@@ -67,7 +67,7 @@ export const LancamentoFormView: React.FC<LancamentoFormViewProps> = ({
   const [docError, setDocError] = useState(false);
   const [docErrorMessage, setDocErrorMessage] = useState('');
   const [dentista, setDentista] = useState(
-    initialData?.dentist || 'Dr. Frankisney Souza (CRO-SP 89412) - Cirurgião Geral'
+    initialData?.dentist || 'Dr. Frankisney B. Souza (CRO-5950/MT) - Cirurgião Dentista'
   );
   const [unidade, setUnidade] = useState(
     initialData?.unit || 'Unidade Principal - Consultório 01 (Lapa)'
@@ -432,11 +432,11 @@ export const LancamentoFormView: React.FC<LancamentoFormViewProps> = ({
                   onChange={(e) => setDentista(e.target.value)}
                   className="w-full h-11 px-3.5 text-xs sm:text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#0A9396] cursor-pointer"
                 >
-                  <option value="Dr. Frankisney Souza (CRO-SP 89412) - Cirurgião Geral">
-                    Dr. Frankisney Souza (CRO-SP 89412) - Cirurgião Geral
+                  <option value="Dr. Frankisney B. Souza (CRO-5950/MT) - Cirurgião Dentista">
+                    Dr. Frankisney B. Souza (CRO-5950/MT) - Cirurgião Dentista
                   </option>
-                  <option value="Dra. Carolina Castro (CRO-SP 93240) - Ortodontia">
-                    Dra. Carolina Castro (CRO-SP 93240) - Ortodontia
+                  <option value="Dr. Silas Jr. B. Souza (CRO-5838/MT) - Implantodontista / Estética">
+                    Dr. Silas Jr. B. Souza (CRO-5838/MT) - Implantodontista / Estética
                   </option>
                   <option value="Administração Central Odonto Souza">
                     Administração Central Odonto Souza

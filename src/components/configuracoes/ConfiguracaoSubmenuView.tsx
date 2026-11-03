@@ -119,11 +119,11 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-600 block mb-1">
-                      Nome Fantasia
+                      Razão Social / Nome Fantasia
                     </label>
                     <input
                       type="text"
-                      defaultValue="Clínica Odonto Souza"
+                      defaultValue="ODONTO SOUZA LTDA"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>
@@ -131,7 +131,7 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                     <label className="text-xs font-semibold text-slate-600 block mb-1">CNPJ</label>
                     <input
                       type="text"
-                      defaultValue="34.892.104/0001-52"
+                      defaultValue="67.587.323/0001-02"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>
@@ -141,7 +141,7 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                     </label>
                     <input
                       type="text"
-                      defaultValue="CRO-SP CL-18492"
+                      defaultValue="CRO-5950/MT"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>
@@ -151,7 +151,7 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                     </label>
                     <input
                       type="text"
-                      defaultValue="Dr. Frankisney Souza (CRO-SP 89412)"
+                      defaultValue="Dr. Frankisney B. Souza (CRO-5950/MT)"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>
@@ -197,7 +197,7 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                     </label>
                     <input
                       type="text"
-                      defaultValue="(11) 3289-4400"
+                      defaultValue="(66) 3554-2633 / (66) 3554-1390"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>
@@ -207,7 +207,7 @@ export const ConfiguracaoSubmenuView: React.FC<ConfiguracaoSubmenuViewProps> = (
                     </label>
                     <input
                       type="text"
-                      defaultValue="(11) 98765-4321"
+                      defaultValue="(66) 98445-4825"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#005F73]/20 focus:border-[#005F73]"
                     />
                   </div>

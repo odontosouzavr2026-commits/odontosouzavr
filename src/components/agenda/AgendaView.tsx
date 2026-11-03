@@ -643,14 +643,14 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         age: 39,
         insurance: 'particular',
         insuranceLabel: slot.insurance || 'Particular',
-        whatsapp: slot.phone || '(24) 99876-1122',
+        whatsapp: slot.phone || '(66) 98445-4825',
         status: 'ativo',
         statusLabel: 'Ativo',
         lastConsultation: {
           date: 'Hoje',
           time: slot.time,
           procedure: slot.procedure || 'Consulta Inicial',
-          dentist: 'Dr. Frankisney Souza',
+          dentist: 'Dr. Frankisney B. Souza',
           isToday: true,
         },
       };

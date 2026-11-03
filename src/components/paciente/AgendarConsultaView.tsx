@@ -4,7 +4,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  ShieldCheck,
   Stethoscope,
   ChevronLeft,
   ChevronRight,
@@ -17,7 +16,6 @@ import {
   Plus,
   X,
   Check,
-  Headphones,
   Sparkles,
   Coffee,
   Timer,
@@ -666,6 +664,61 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
     scrollToTop();
   };
 
+  // Card da Fila de Encaixe Imediato (Renderizado na coluna esquerda no desktop e abaixo dos horários no mobile)
+  const renderFilaEncaixeCard = () => (
+    <div className="bg-gradient-to-br from-teal-500/10 via-[#86f0f3]/25 to-teal-100/40 rounded-2xl p-5 shadow-xs border border-teal-200/90 text-slate-900 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#005f73] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Zap className="w-4 h-4 text-[#89f3f6]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-sm text-slate-900 leading-tight">
+                Fila de Encaixe Imediato
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-[#005f73] text-[#89f3f6] text-[10px] font-extrabold">
+                {filaCount} aguardando
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+              Reserva prioritária para vagas liberadas por desistência hoje.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ALERTA VISUAL OBRIGATÓRIO DE ENCAIXE */}
+      <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-amber-950 text-[11px] leading-relaxed space-y-1">
+        <div className="flex items-center gap-1.5 font-extrabold text-amber-900">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>Sobreaviso de Encaixe</span>
+        </div>
+        <p className="text-amber-800">
+          A Fila de Encaixe é uma lista de sobreaviso. <strong>Não é garantia de atendimento em horário pré-fixado</strong>, dependendo de cancelamentos de outros pacientes ou intervalo clínico.
+        </p>
+        <p className="text-teal-800 font-semibold pt-0.5 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-teal-600 shrink-0" />
+          <span>Havendo desistência, a alocação é automática com aviso no WhatsApp!</span>
+        </p>
+      </div>
+
+      <div className="pt-1">
+        <button
+          type="button"
+          onClick={handleEntrarFila}
+          className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+            inFila
+              ? 'bg-emerald-600 text-white'
+              : 'bg-[#005f73] hover:bg-[#004655] text-white'
+          }`}
+        >
+          {inFila ? 'Você está na Fila (Aguardando vaga)' : 'Entrar na Fila de Encaixe'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
       {/* ============================================================== */}
@@ -776,74 +829,9 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
             </div>
           </div>
 
-          {/* CARD FILA DE ENCAIXE IMEDIATO */}
-          <div className="bg-gradient-to-br from-teal-500/10 via-[#86f0f3]/25 to-teal-100/40 rounded-2xl p-5 shadow-xs border border-teal-200/90 text-slate-900 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#005f73] text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Zap className="w-4 h-4 text-[#89f3f6]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm text-slate-900 leading-tight">
-                      Fila de Encaixe Imediato
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-[#005f73] text-[#89f3f6] text-[10px] font-extrabold">
-                      {filaCount} aguardando
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Reserva prioritária para vagas liberadas por desistência hoje.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ALERTA VISUAL OBRIGATÓRIO DE ENCAIXE */}
-            <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/90 text-amber-950 text-[11px] leading-relaxed space-y-1">
-              <div className="flex items-center gap-1.5 font-extrabold text-amber-900">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Sobreaviso de Encaixe</span>
-              </div>
-              <p className="text-amber-800">
-                A Fila de Encaixe é uma lista de sobreaviso. <strong>Não é garantia de atendimento em horário pré-fixado</strong>, dependendo de cancelamentos de outros pacientes ou intervalo clínico.
-              </p>
-              <p className="text-teal-800 font-semibold pt-0.5 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-teal-600 shrink-0" />
-                <span>Havendo desistência, a alocação é automática com aviso no WhatsApp!</span>
-              </p>
-            </div>
-
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleEntrarFila}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                  inFila
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-[#005f73] hover:bg-[#004655] text-white'
-                }`}
-              >
-                {inFila ? 'Você está na Fila (Aguardando vaga)' : 'Entrar na Fila de Encaixe'}
-              </button>
-            </div>
-          </div>
-
-          {/* LGPD E PRIVACIDADE CARD */}
-          <div className="bg-slate-100/70 rounded-2xl p-4 border border-slate-200/80 space-y-2 text-xs text-slate-600">
-            <div className="flex items-center gap-2 text-[#005f73] font-bold">
-              <ShieldCheck className="w-4 h-4 text-[#0A9396]" />
-              <span>Privacidade e Ética Odontológica (LGPD)</span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">
-              Em total respeito à Lei Geral de Proteção de Dados e ao sigilo médico-odontológico, a
-              agenda exibe apenas os blocos de horário vagos e confirmações anônimas. Nenhum
-              prontuário ou identificador de terceiros é compartilhado.
-            </p>
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-1 font-medium">
-              <Headphones className="w-3.5 h-3.5 text-[#005f73]" />
-              <span>Dúvidas com horários? Entre em contato pelo ramal clínico.</span>
-            </div>
+          {/* CARD FILA DE ENCAIXE IMEDIATO (DESKTOP: Na coluna esquerda sob o calendário) */}
+          <div className="hidden xl:block">
+            {renderFilaEncaixeCard()}
           </div>
         </div>
 
@@ -851,8 +839,8 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
         {/* COLUNA DIREITA: HEADER DA AGENDA + GRADE DE ATENDIMENTO      */}
         {/* ============================================================ */}
         <div className="xl:col-span-8 flex flex-col gap-4 w-full">
-          {/* HEADER STATUS BAR */}
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* HEADER STATUS BAR (Oculto no mobile para os horários ficarem logo abaixo do calendário) */}
+          <div className="hidden sm:flex bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/80 flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-[#00696c] shrink-0">
                 <Clock className="w-6 h-6 text-[#005f73]" />
@@ -865,7 +853,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Início às 08:00 (consultas de 45 min com 5 min de descanso) • Dr. Frankisney Souza (Cadeira 01)
+                  Início às 08:00 (consultas de 45 min com 5 min de descanso) • Dr. Frankisney B. Souza (Cadeira 01)
                 </p>
               </div>
             </div>
@@ -925,7 +913,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
               </div>
 
               {/* Filtros em Chips */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none shrink-0">
+              <div className="flex items-center justify-center sm:justify-start gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none shrink-0">
                 <button
                   type="button"
                   onClick={() => setShiftFilter('todos')}
@@ -982,7 +970,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2.5 sm:gap-3.5 pt-1">
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 sm:gap-3.5 pt-1">
                 {filteredSlots
                   .filter((s) => s.status === 'livre' && !isSlotInThePast(s.time, selectedDay))
                   .map((slot) => {
@@ -1020,6 +1008,11 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
               </div>
             )}
           </div>
+
+          {/* CARD FILA DE ENCAIXE IMEDIATO (MOBILE: Abaixo dos horários da agenda) */}
+          <div className="block xl:hidden">
+            {renderFilaEncaixeCard()}
+          </div>
         </div>
       </div>
 
@@ -1055,7 +1048,7 @@ export const AgendarConsultaView: React.FC<AgendarConsultaViewProps> = ({
                 <span className="text-[11px] font-bold text-slate-400 uppercase">
                   Profissional & Local
                 </span>
-                <p className="font-bold text-slate-900">Dr. Frankisney Souza (CRO-SP 78.432)</p>
+                <p className="font-bold text-slate-900">Dr. Frankisney B. Souza (CRO-5950/MT)</p>
                 <p className="text-xs text-slate-500">
                   Cadeira 01 • Consultório Principal • Duração prevista: {selectedSlotForBooking.duration}
                 </p>

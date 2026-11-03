@@ -62,7 +62,7 @@ export const build2HourReminderMessage = (params: {
   time: string;
 }): string => {
   const formattedDate = formatAppointmentDate(params.date);
-  const dentistName = params.dentist || 'Dr. Frankisney Souza';
+  const dentistName = params.dentist || 'Dr. Frankisney B. Souza';
   return `Olá *${params.patientName}*! Lembramos da sua consulta com *${dentistName}* no dia *${formattedDate}* às *${params.time}* na clínica Odonto Souza.\n\nPor favor, responda:\n*1* para *CONFIRMAR*\n*2* para *REMARCAR*`;
 };
 
@@ -102,7 +102,7 @@ export const buildEncaixePromovidoMessage = (params: {
 }): string => {
   const firstName = params.patientName.split(' ')[0] || params.patientName;
   const formattedDate = formatAppointmentDate(params.date);
-  const dentistName = params.dentist || 'Dr. Frankisney Souza';
+  const dentistName = params.dentist || 'Dr. Frankisney B. Souza';
   return `Olá, *${firstName}*! 🎉 Boas notícias!\n\nUma vaga abriu na agenda e você foi adiantado(a) da *Fila de Encaixe* prioritária da clínica Odonto Souza! 🦷✨\n\nConfira os dados do seu agendamento:\n📅 Data: *${formattedDate}*\n⏰ Horário: *${params.time}*\n👨‍⚕️ Profissional: *${dentistName}*\n📋 Procedimento: *${params.procedure || 'Consulta Odontológica'}*\n📍 Local: *Clínica Odonto Souza*\n\nSeu agendamento já está confirmado. Esperamos você na clínica! Se precisar de algo, responda a esta mensagem.`;
 };
 
@@ -188,8 +188,8 @@ export const whatsappNotificationService = {
             .replace(/\{\{data_consulta\}\}/gi, formattedDate)
             .replace(/\{\{hora\}\}/gi, params.time)
             .replace(/\{\{procedimento\}\}/gi, params.procedure)
-            .replace(/\{\{dentista\}\}/gi, 'Dr. Frankisney Souza')
-            .replace(/\{\{telefone_clinica\}\}/gi, '(66) 99254-4324')
+            .replace(/\{\{dentista\}\}/gi, 'Dr. Frankisney B. Souza')
+            .replace(/\{\{telefone_clinica\}\}/gi, '(66) 98445-4825')
             .replace(/\{\{chave_pix_clinica\}\}/gi, 'financeiro@odontosouzavr.com.br')
             .replace(/\{\{link_fatura\}\}/gi, 'https://app.odontosouzavr.com.br');
         } else {
@@ -316,7 +316,7 @@ export const whatsappNotificationService = {
       }
 
       const formattedDate = formatAppointmentDate(params.date);
-      const dentistName = params.dentist || 'Dr. Frankisney Souza';
+      const dentistName = params.dentist || 'Dr. Frankisney B. Souza';
       let msg = '';
 
       if (tpl && tpl.content) {
@@ -326,7 +326,7 @@ export const whatsappNotificationService = {
           .replace(/\{\{data_consulta\}\}/gi, formattedDate)
           .replace(/\{\{hora\}\}/gi, params.time)
           .replace(/\{\{dentista\}\}/gi, dentistName)
-          .replace(/\{\{telefone_clinica\}\}/gi, '(66) 99254-4324');
+          .replace(/\{\{telefone_clinica\}\}/gi, '(66) 98445-4825');
       } else {
         msg = build2HourReminderMessage(params);
       }
@@ -575,7 +575,7 @@ export const whatsappNotificationService = {
         patientName: params.patientName,
         date: params.date,
         time: params.time,
-        dentist: params.dentist || 'Dr. Frankisney Souza',
+        dentist: params.dentist || 'Dr. Frankisney B. Souza',
         procedure: params.procedure || 'Consulta Odontológica',
       });
 

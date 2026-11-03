@@ -41,7 +41,7 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
 
   // Status Real da Conexão WhatsApp
   const [waState, setWaState] = useState<'open' | 'connecting' | 'close' | 'refused' | string>('open');
-  const [waProfile, setWaProfile] = useState<string>('Everaldo Souza • (66) 99254-4324');
+  const [waProfile, setWaProfile] = useState<string>('Odonto Souza • (66) 98445-4825');
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
   // Filtros
@@ -67,7 +67,7 @@ export const TemplatesView: React.FC<TemplatesViewProps> = ({
         const jid = details.ownerJid ? details.ownerJid.split('@')[0] : '';
         const formatted = jid
           ? `+${jid.slice(0, 2)} (${jid.slice(2, 4)}) ${jid.slice(4)}`
-          : '(66) 99254-4324';
+          : '(66) 98445-4825';
         setWaProfile(`${name} • ${formatted}`);
       }
     } catch (e) {

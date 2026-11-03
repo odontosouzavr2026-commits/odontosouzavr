@@ -362,7 +362,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
       dateKey: selectedDay.dateKey,
       duration: '45 min',
       procedure: 'Consulta e Avaliação Odontológica',
-      dentist: 'Dr. Frankisney Souza (CRO-SP 78.432)',
+      dentist: 'Dr. Frankisney B. Souza (CRO-5950/MT)',
       room: 'Cadeira 01 / Consultório Principal',
       status: 'Consulta Agendada • Confirmada',
     });
@@ -457,7 +457,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
 
       const file = new Blob(
         [
-          `ODONTO SOUZA - LAUDO CLÍNICO DO PACIENTE\n\nPaciente: ${patientName}\nProntuário: #${patientPront}\nResponsável Técnico: Dr. Frankisney Souza (CRO-SP 78.432)\nData de Emissão: ${new Date().toLocaleDateString('pt-BR')}\n\nHISTÓRICO CLÍNICO:\n${proceduresList}\n\nClínica Souza Odontologia - Atendimento de Excelência`,
+          `ODONTO SOUZA - LAUDO CLÍNICO DO PACIENTE\n\nPaciente: ${patientName}\nProntuário: #${patientPront}\nResponsável Técnico: Dr. Frankisney B. Souza (CRO-5950/MT)\nData de Emissão: ${new Date().toLocaleDateString('pt-BR')}\n\nHISTÓRICO CLÍNICO:\n${proceduresList}\n\nClínica Souza Odontologia - Atendimento de Excelência`,
         ],
         { type: 'text/plain' }
       );
@@ -992,7 +992,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                   dateKey,
                   duration: '45 min',
                   procedure: type,
-                  dentist: 'Dr. Frankisney Souza (CRO-SP 78.432)',
+                  dentist: 'Dr. Frankisney B. Souza (CRO-5950/MT)',
                   room: 'Cadeira 01 / Consultório Principal',
                   status: 'Consulta Pré-Agendada',
                 });
@@ -1297,11 +1297,11 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                         <div className="flex items-center space-x-2 text-[#005f73]">
                           <User className="w-4 h-4 text-[#005f73]" />
                           <span className="text-[11px] uppercase tracking-wider font-bold">
-                            Dr. Frankisney Souza
+                            Dr. Frankisney B. Souza
                           </span>
                         </div>
                         <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                          CRO-SP 78.432
+                          CRO-5950/MT
                         </span>
                       </div>
 
@@ -1309,16 +1309,19 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                         <div className="w-12 h-12 rounded-xl overflow-hidden shadow-xs shrink-0 ring-1 ring-slate-200">
                           <img
                             src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=200"
-                            alt="Dr. Frankisney Souza"
+                            alt="Dr. Frankisney B. Souza"
                             className="w-full h-full object-cover"
                           />
                         </div>
                         <div>
                           <h4 className="text-sm font-black text-slate-900 leading-tight">
-                            Dr. Frankisney Souza
+                            Dr. Frankisney B. Souza
                           </h4>
                           <p className="text-xs text-[#00696c] font-semibold mt-0.5">
-                            Responsável Técnico • Odonto Souza
+                            Cirurgião Dentista • RT Odonto Souza
+                          </p>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Fixo: (66) 3554-2633
                           </p>
                         </div>
                       </div>
@@ -1327,13 +1330,13 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     <div className="mt-4 pt-3 flex items-center justify-between border-t border-slate-100">
                       <span className="text-[11px] text-slate-500 font-medium">Central WhatsApp</span>
                       <a
-                        href="https://wa.me/5511999999999"
+                        href="https://wa.me/5566984454825"
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center space-x-1"
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
-                        <span>Falar no WhatsApp</span>
+                        <span>(66) 98445-4825</span>
                       </a>
                     </div>
                   </div>
@@ -1454,7 +1457,7 @@ export const MinhaContaView: React.FC<MinhaContaViewProps> = ({
                     Não há mais vagas livres para agendamento online neste dia. Por favor, escolha outro dia acima.
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2.5 sm:gap-3.5 pt-1">
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 sm:gap-3.5 pt-1">
                     {selectedDay.availableTimes.map((time) => {
                       const isDoctorOnly = time === '08:10' || (time >= '08:00' && time < '09:00');
                       const isTimeSelected = selectedTime === time;

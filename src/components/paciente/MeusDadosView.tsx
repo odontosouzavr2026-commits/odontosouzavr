@@ -270,9 +270,9 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
       {/* ============================================================== */}
-      {/* 1. HERO / BANNER ADMINISTRATIVO CLÍNICO                        */}
+      {/* 1. HERO / BANNER ADMINISTRATIVO CLÍNICO (Oculto no mobile)    */}
       {/* ============================================================== */}
-      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-50/70 via-white to-sky-50/50 p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+      <header className="hidden sm:block relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-50/70 via-white to-sky-50/50 p-6 sm:p-8 border border-slate-200/80 shadow-xs">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex flex-col gap-2.5 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
@@ -288,7 +288,7 @@ export const MeusDadosView: React.FC<MeusDadosViewProps> = ({ patientData, onSav
 
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium text-xs">
                 <Stethoscope className="w-3.5 h-3.5 text-[#005f73]" />
-                Dr. Frankisney Souza (CRO-SP 78.432)
+                Dr. Frankisney B. Souza (CRO-5950/MT)
               </span>
             </div>
 

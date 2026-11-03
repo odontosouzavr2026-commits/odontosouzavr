@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Calendar,
   Stethoscope,
   Building2,
   CalendarPlus,
@@ -26,6 +27,7 @@ import { MobileCharts } from './MobileCharts';
 import { AppointmentModal } from '../forms/AppointmentModal';
 import { PatientModal } from '../forms/PatientModal';
 import { BudgetModal } from '../forms/BudgetModal';
+import { AgendaDoDiaModal } from './AgendaDoDiaModal';
 import { PatientAppointment, AppointmentStatus } from '../../types/dashboard';
 import { agendaService } from '../../services/agendaService';
 import { dashboardService, DashboardMetricsData, DashboardChartData } from '../../services/dashboardService';
@@ -44,6 +46,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isAgendaDoDiaOpen, setIsAgendaDoDiaOpen] = useState(false);
 
   // Real appointments from Supabase
   const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
@@ -88,6 +91,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   useEffect(() => {
     scrollToTop();
     loadData();
+
+    // Auto-exibe o modal com as consultas do dia na abertura do sistema (1x por sessão)
+    try {
+      const modalVisto = sessionStorage.getItem('odonto_agenda_dia_modal_visto');
+      if (!modalVisto) {
+        const timerOpen = setTimeout(() => {
+          setIsAgendaDoDiaOpen(true);
+        }, 500);
+        return () => clearTimeout(timerOpen);
+      }
+    } catch {}
 
     // Timer para atualizar relógio e manter sincronizado
     const timer = setInterval(() => {
@@ -167,6 +181,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </span>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAgendaDoDiaOpen(true)}
+          className="w-full mt-1.5 py-2 px-3 rounded-xl bg-[#005F73]/10 hover:bg-[#005F73]/15 text-[#005F73] text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Calendar className="w-4 h-4 text-[#005F73]" />
+          <span>Ver Consultas de Hoje ({appointments.length})</span>
+        </button>
       </section>
 
       {/* Desktop Header Banner (Visible on md+ unless forced mobile) */}
@@ -186,7 +209,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex flex-col text-right">
+          <button
+            type="button"
+            onClick={() => setIsAgendaDoDiaOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005F73] hover:bg-[#004756] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+            title="Abrir o resumo das consultas agendadas para hoje"
+          >
+            <Calendar className="w-4 h-4 text-cyan-200" />
+            <span>Consultas do Dia ({appointments.length})</span>
+          </button>
+
+          <div className="flex flex-col text-right pl-2 border-l border-slate-100">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Disponibilidade Hoje
             </span>
@@ -470,6 +503,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <BudgetModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
+      />
+
+      {/* Modal Matinal / Agenda do Dia na Abertura do Sistema */}
+      <AgendaDoDiaModal
+        isOpen={isAgendaDoDiaOpen}
+        onClose={() => setIsAgendaDoDiaOpen(false)}
+        appointments={appointments}
+        onNavigateToAgenda={() => {
+          if (onNavigate) onNavigate('agenda');
+        }}
+        onNavigateToAtendimento={() => {
+          if (onNavigate) onNavigate('atendimento');
+        }}
       />
     </div>
   );

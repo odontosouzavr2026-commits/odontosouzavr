@@ -154,7 +154,7 @@ export const ClinicalEvolutionCard: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>Dr. Frankisney Souza • CRO/SP 89.201</span>
+        <span>Dr. Frankisney B. Souza • CRO-5950/MT</span>
         <span className="text-[11px] text-slate-400">Prontuário eletrônico certificado</span>
       </div>
     </div>

@@ -1,6 +1,30 @@
 # OdontoSouza — Memória Persistente do Projeto (Memory Bank)
 
 Este arquivo (`memoryinfinity.md`) serve como a **memória contínua e de longo prazo** para o agente de IA no projeto `OdontoSouza`.
+- **Dados Oficiais e Fiscais da Clínica (Fonte da Verdade Permanente):**
+  - **Razão Social:** ODONTO SOUZA LTDA
+  - **CNPJ Oficial:** `67.587.323/0001-02`
+  - **Registro no CRO-CL / RT:** `CRO-5950/MT`
+  - **Corpo Clínico Oficial:**
+    - **Dr. Frankisney B. Souza:** Cirurgião Dentista • Responsável Técnico • CRO-5950/MT • Telefone Fixo: (66) 3554-2633
+    - **Dr. Silas Jr. B. Souza:** Implantodontista & Estética • CRO-5838/MT • Telefone Fixo: (66) 3554-1390 • WhatsApp Oficial: (66) 98445-4825
+  - **Contatos Oficiais:**
+    - WhatsApp Central: `(66) 98445-4825` (link: `https://wa.me/5566984454825`)
+    - Telefones Fixos: `(66) 3554-2633` e `(66) 3554-1390`
+
+- **Modal Matinal de Abertura do Sistema (Resumo da Agenda do Dia):**
+  - Implementado em `src/components/dashboard/AgendaDoDiaModal.tsx` e integrado no `DashboardView.tsx`.
+  - Exibe na abertura do sistema um briefing completo das consultas agendadas para o dia atual: data por extenso, métricas rápidas (total de consultas, confirmados, em espera e atendidos), lista detalhada dos pacientes (horário, nome, prontuário, procedimento, status e botão de atalho para atendimento) e atalhos rápidos ("Ver Agenda Completa" e "Ir ao Dashboard").
+  - Controle de frequência via `sessionStorage` (`odonto_agenda_dia_modal_visto`) para não incomodar a navegação interna, com botão destacado no topo do Dashboard para reabertura manual a qualquer instante.
+
+- **Layout Mobile da Agenda do Paciente (`AgendarConsultaView.tsx`):**
+  - No celular/mobile, a sessão com os **Horários Disponíveis** fica posicionada **imediatamente abaixo do Calendário**, permitindo ao paciente tocar em qualquer dia e visualizar as vagas livres sem precisar rolar a tela.
+  - O card da **Fila de Encaixe Imediato** fica posicionado após os horários no mobile (`block xl:hidden`), enquanto no desktop permanece na coluna esquerda sob o calendário (`hidden xl:block`).
+
+- **Ajuste Mobile em Meus Dados (`MeusDadosView.tsx`):**
+  - O banner superior informativo (pílulas de prontuário, LGPD, RT e botões de cabeçalho) foi ocultado em dispositivos móveis (`hidden sm:block`).
+  - No celular, o paciente vai direto para o card de perfil, foto e formulário cadastral, utilizando os botões de salvar e descartar no rodapé da página.
+
 ---
 
 ## 📌 1. Visão Geral do Projeto

@@ -30,7 +30,7 @@ export const ConexoesWhatsAppView: React.FC<ConexoesWhatsAppViewProps> = ({
   // Connection State
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [instanceName] = useState(() => evolutionApiService.getInstanceName());
-  const [phoneNumber, setPhoneNumber] = useState('+55 (66) 99254-4324');
+  const [phoneNumber, setPhoneNumber] = useState('+55 (66) 98445-4825');
   const [profileName, setProfileName] = useState('Everaldo Souza');
   const [pingLatency, setPingLatency] = useState(38);
   const [stats, setStats] = useState<{ message: number; contact: number; chat: number }>({

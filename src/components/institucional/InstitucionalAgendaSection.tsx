@@ -1006,7 +1006,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
                 </div>
                 <div>
                   <h4 className="font-extrabold text-sm text-white">Consultório Central • Cadeira 01</h4>
-                  <p className="text-xs text-cyan-100">Dr. Frankisney Souza (CRO-SP 78.432)</p>
+                  <p className="text-xs text-cyan-100">Dr. Frankisney B. Souza (CRO-5950/MT)</p>
                 </div>
               </div>
 
@@ -1150,7 +1150,7 @@ export const InstitucionalAgendaSection: React.FC<InstitucionalAgendaProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2.5 sm:gap-3.5 pt-1">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 sm:gap-3.5 pt-1">
                   {filteredSlots.map((slot) => {
                     const isDoctor = slot.status === 'doutor_apenas';
                     const isSelected = selectedSlot?.id === slot.id;

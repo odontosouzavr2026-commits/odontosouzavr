@@ -1019,9 +1019,9 @@ export const EstoqueView: React.FC<EstoqueViewProps> = ({
 
             {/* Visual da Etiqueta para Colar no Pacote */}
             <div className="p-4 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 space-y-2 text-center font-mono">
-              <span className="text-xs font-bold text-slate-800 block">CLÍNICA ODONTO SOUZA</span>
+              <span className="text-xs font-bold text-slate-800 block">ODONTO SOUZA LTDA</span>
               <span className="text-[10px] text-slate-500 block">
-                RT: Dr. Frankisney Souza • CRO-SP 89412
+                RT: Dr. Frankisney B. Souza • CRO-5950/MT • CNPJ: 67.587.323/0001-02
               </span>
               <div className="py-2 my-1 border-y border-slate-200">
                 <span className="text-sm font-extrabold text-[#005F73] block">

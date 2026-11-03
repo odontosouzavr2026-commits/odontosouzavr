@@ -117,8 +117,8 @@ PLANO TERAPÊUTICO INTEGRADO & RELATÓRIO CLÍNICO DIGITAL
 ---------------------------------------------------------------------------------
 Paciente: ${patientName}
 Prontuário: ${patientCode}
-Responsável Técnico: Dr. Frankisney Souza (CRO-RJ 42189 / CRO-SP 78.432)
-Especialidade: Reabilitação Oral, Implantodontia & Estética Dental
+Responsável Técnico: Dr. Frankisney B. Souza (CRO-5950/MT)
+Especialidade: Cirurgião Dentista
 Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}
 
 RESUMO DO TRATAMENTO:
@@ -134,7 +134,7 @@ PRESCRIÇÕES E CUIDADOS:
 ${orientacoesTexto}
 
 Documento assinado digitalmente nos termos da ICP-Brasil.
-Odonto Souza • Central de Atendimento: (65) 99605-5823`;
+Odonto Souza • Central de Atendimento: (66) 3554-2633 • WhatsApp: (66) 98445-4825`;
 
       const file = new Blob([content], { type: 'text/plain;charset=utf-8' });
       element.href = URL.createObjectURL(file);
@@ -159,7 +159,7 @@ Odonto Souza • Central de Atendimento: (65) 99605-5823`;
 
       const content = `ODONTO SOUZA - RECEITUÁRIO & ATESTADO DIGITAL
 Assinatura Digital ICP-Brasil: SHA256-VALIDATED-OK
-Cirurgião-Dentista: Dr. Frankisney Souza (CRO-SP 78.432)
+Cirurgião-Dentista: Dr. Frankisney B. Souza (CRO-5950/MT)
 Paciente: ${patientName}
 Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}
 
@@ -743,10 +743,10 @@ Validade: 30 dias.`;
       {/* ============================================================== */}
       <footer className="pt-2 pb-6 text-center text-xs text-slate-500 space-y-1">
         <p className="font-semibold text-slate-700">
-          Responsável Técnico: Dr. Frankisney Souza • CRO-SP 78.432 • Especialista em Reabilitação Oral e Implantodontia
+          Responsável Técnico: Dr. Frankisney B. Souza • CRO-5950/MT • Cirurgião Dentista
         </p>
         <p>
-          Odonto Souza Odontologia Integrada LTDA • CNPJ: 12.345.678/0001-90 • Todos os direitos reservados • 2026
+          ODONTO SOUZA LTDA • CNPJ: 67.587.323/0001-02 • CRO-5950/MT • Todos os direitos reservados • 2026
         </p>
       </footer>
 
