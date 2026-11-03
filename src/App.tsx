@@ -30,6 +30,7 @@ import { InstitucionalView } from './components/institucional/InstitucionalView'
 import { PacienteItem } from './types/pacientes';
 import { scrollToTop } from './utils/scrollUtils';
 import { automationEngine } from './services/automationEngine';
+import { supabase } from './lib/supabase';
 
 interface AuthUser {
   name: string;
@@ -113,6 +114,32 @@ export default function App() {
       automationEngine.stop();
     };
   }, []);
+
+  // Sincroniza estado de autenticação real do Supabase com proteção contra adulteração local
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('odonto_user');
+        sessionStorage.removeItem('odonto_user');
+        localStorage.removeItem('odonto_notificacoes_clinicas_v1');
+        setCurrentUser(null);
+      } else if (session?.user && (!currentUser || currentUser.email !== session.user.email)) {
+        const uRole = session.user.user_metadata?.role || (currentUser?.role || 'Administrador');
+        const uName = session.user.user_metadata?.name || (currentUser?.name || 'Usuário');
+        const authUser: AuthUser = {
+          name: uName,
+          email: session.user.email || '',
+          role: uRole,
+        };
+        setCurrentUser(authUser);
+        localStorage.setItem('odonto_user', JSON.stringify(authUser));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [currentUser]);
 
   // Sincroniza com histórico do navegador para suportar /, /minhaconta e /paineladmin
   useEffect(() => {
@@ -231,9 +258,16 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // silencioso
+    }
     localStorage.removeItem('odonto_user');
     sessionStorage.removeItem('odonto_user');
+    localStorage.removeItem('odonto_notificacoes_clinicas_v1');
+    localStorage.removeItem('odonto_evo_api_key');
     setCurrentUser(null);
     if (isAppSubdomain()) {
       setRouteState({

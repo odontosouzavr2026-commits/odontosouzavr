@@ -150,6 +150,16 @@ export const SegurancaView: React.FC<SegurancaViewProps> = ({
   const [isAuthAppModalOpen, setIsAuthAppModalOpen] = useState(false);
   const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
   const [isAnonimizacaoModalOpen, setIsAnonimizacaoModalOpen] = useState(false);
+  const [totpKey] = useState<string>(() => {
+    try {
+      const array = new Uint8Array(8);
+      window.crypto.getRandomValues(array);
+      const randomHex = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+      return `ODTO-${randomHex.slice(0, 4)}-${randomHex.slice(4, 8)}-${randomHex.slice(8, 12)}`;
+    } catch {
+      return `ODTO-AUTH-${Date.now().toString(36).toUpperCase()}`;
+    }
+  });
 
   // Devices & Logs
   const [devices, setDevices] = useState<ConnectedDevice[]>(INITIAL_DEVICES);
@@ -1104,12 +1114,12 @@ export const SegurancaView: React.FC<SegurancaViewProps> = ({
                 </span>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-slate-800">
-                    ODTO-2025-SOUZA-AUTH-892
+                    {totpKey}
                   </span>
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText('ODTO-2025-SOUZA-AUTH-892');
+                      navigator.clipboard.writeText(totpKey);
                       toast.success('Chave Copiada! 📋', 'Chave de autenticação copiada.');
                     }}
                     className="p-1 text-[#005f73] hover:bg-slate-200 rounded cursor-pointer"

@@ -993,6 +993,11 @@ export const brandColors = {
   - **Remoção de Alternância Acidental de Status no Painel Administrativo:**
     - Na tabela "Próximos Pacientes do Dia" (`UpcomingAppointmentsTable.tsx` e `MobilePatientList.tsx`), foi removido o evento `onClick` da linha e do badge de status (`handleToggleStatus` / `nextStatusMap`).
     - Os status exibidos na tabela agora são estritamente informativos e somente leitura, prevenindo alterações acidentais de status ao clicar sobre os pacientes no painel administrativo.
+  - **Blindagem de Segurança e Correção de Vulnerabilidades Críticas:**
+    - **Remoção Total da Credencial Mestra em Texto Claro:** Eliminado o bypass `isMasterAdmin` com senha hardcoded em `LoginView.tsx`. Todo e qualquer login passa obrigatoriamente pela autenticação do Supabase Auth (`supabase.auth.signInWithPassword`) com hash seguro (`Argon2`/`Bcrypt`).
+    - **Sincronização Segura de Sessão JWT (Anti-Adulteração de LocalStorage):** Implementado listener `supabase.auth.onAuthStateChange` em `App.tsx` para sincronizar ativamente o estado da sessão com os tokens criptografados do Supabase, descartando perfis forjados em `localStorage` e efetuando `signOut` nativo na saída (`handleLogout`).
+    - **Higienização de Caches e Chaves Sensíveis:** No logout do sistema, `odonto_user`, `odonto_notificacoes_clinicas_v1` e `odonto_evo_api_key` são limpos imediatamente do navegador.
+    - **Remoção de Chave TOTP Estática:** Em `SegurancaView.tsx`, a chave manual fixa de 2FA foi substituída por geração de segredo aleatório criptográfico por sessão via `window.crypto.getRandomValues`.
   - **Fila de Encaixe com Alerta Visual Multi-Canais & Alocação Automática na Desistência com Notificação WhatsApp:**
     - Implementada a arquitetura completa de Fila de Encaixe solicitada pelo usuário:
       1. **Alerta Visual Multi-Canais:**

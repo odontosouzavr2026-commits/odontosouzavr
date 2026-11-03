@@ -137,10 +137,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
         password: password,
       });
 
-      // 2. Credencial mestra de desenvolvimento local (contingência)
-      const isMasterAdmin =
-        cleanEmail.toLowerCase() === 'everaldozs@gmail.com' && password === '@20Odonto26@#';
-
       if (!authError && authData?.user) {
         // Sucesso real no Supabase Auth!
         setFailedAttempts(0);
@@ -196,35 +192,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
           email: cleanEmail,
           role: finalRole,
           name: finalName,
-        };
-
-        if (rememberMe) {
-          localStorage.setItem('odonto_user', JSON.stringify(userData));
-        } else {
-          sessionStorage.setItem('odonto_user', JSON.stringify(userData));
-        }
-
-        setTimeout(() => {
-          onLoginSuccess(userData);
-        }, 500);
-        return;
-      }
-
-      if (isMasterAdmin) {
-        // Sucesso Mestre Administrador
-        setFailedAttempts(0);
-        setLockoutUntil(null);
-        sessionStorage.removeItem('odonto_login_failed_attempts');
-        sessionStorage.removeItem('odonto_login_lockout_until');
-
-        setIsLoading(false);
-        setAuthSuccess(true);
-        toast.success('Login realizado com sucesso!', 'Bem-vindo de volta, Dr. Everaldo Souza.');
-
-        const userData = {
-          email: cleanEmail,
-          role: 'Administrador',
-          name: 'Everaldo Souza',
         };
 
         if (rememberMe) {
